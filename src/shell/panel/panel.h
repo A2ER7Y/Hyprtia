@@ -50,6 +50,12 @@ public:
 
   [[nodiscard]] virtual float preferredWidth() const = 0;
   [[nodiscard]] virtual float preferredHeight() const = 0;
+  // Output-aware sizing for proportional drawers. The default preserves every
+  // existing panel's fixed preferred width.
+  [[nodiscard]] virtual float preferredWidthForOutput(float outputWidth) const {
+    (void)outputWidth;
+    return preferredWidth();
+  }
   // Span the output's available extent on this axis (floating panels only). The
   // surface is dual-anchored with a requested size of 0 so the compositor
   // assigns the size, subtracting every exclusive zone on the output; the

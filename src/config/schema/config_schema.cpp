@@ -1229,6 +1229,7 @@ namespace noctalia::config::schema {
           field(&ShellConfig::LauncherConfig::appGrid, "app_grid"),
           field(&ShellConfig::LauncherConfig::sessionSearch, "session_search"),
           field(&ShellConfig::LauncherConfig::sortByUsage, "sort_by_usage"),
+          field(&ShellConfig::LauncherConfig::widthFraction, "width_fraction", Range<double>{0.0, 1.0}),
           subTable(&ShellConfig::LauncherConfig::dmenu, "dmenu", shellLauncherDmenuSchema()),
       };
       return s;

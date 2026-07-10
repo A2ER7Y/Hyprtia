@@ -888,6 +888,10 @@ struct ShellConfig {
     bool appGrid = false;
     bool sessionSearch = false;
     bool sortByUsage = true;
+    // Fraction of the target output used by the floating launcher. Zero keeps
+    // the historical fixed width; StratOS uses one third for its drawer-like
+    // launcher below the top bar.
+    float widthFraction = 0.0f;
 
     struct DmenuConfig {
       std::vector<DmenuEntryConfig> entries;

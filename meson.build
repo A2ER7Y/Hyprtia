@@ -471,6 +471,8 @@ _noctalia_sources = files(
   'src/notification/notification_manager.cpp',
   'src/notification/notification_filter.cpp',
   'src/notification/notification_display_name.cpp',
+  'src/notification/notification_icon_resolver.cpp',
+  'src/notification/notification_recent_apps.cpp',
   'src/notification/notification_history_store.cpp',
   'src/pipewire/pipewire_service.cpp',
   'src/pipewire/wireplumber_mixer.cpp',
@@ -697,6 +699,7 @@ _noctalia_sources = files(
   'src/shell/bar/widgets/test_widget.cpp',
   'src/shell/bar/widgets/theme_mode_widget.cpp',
   'src/shell/bar/widgets/tray_widget.cpp',
+  'src/shell/bar/widgets/updates_widget.cpp',
   'src/shell/bar/widgets/volume_widget.cpp',
   'src/shell/bar/widgets/brightness_widget.cpp',
   'src/shell/bar/widgets/wallpaper_widget.cpp',
@@ -717,6 +720,7 @@ _noctalia_sources = files(
   'src/system/day_night_schedule.cpp',
   'src/system/gamma_service.cpp',
   'src/system/location_service.cpp',
+  'src/system/package_update_service.cpp',
   'src/capture/screencopy_capture.cpp',
   'src/capture/screencopy_util.cpp',
   'src/capture/screenshot_service.cpp',
@@ -963,6 +967,12 @@ install_data(
 )
 
 install_data(
+  'packaging/stratos/hyprtia-android-connect',
+  install_dir: get_option('bindir'),
+  install_mode: 'rwxr-xr-x',
+)
+
+install_data(
   'packaging/stratos/config.toml',
   install_dir: get_option('datadir') / 'hyprtia',
 )
@@ -1014,6 +1024,17 @@ notification_filter_test = executable('notification_filter_test',
 )
 
 test('notification_filter', notification_filter_test)
+
+notification_recent_apps_test = executable('notification_recent_apps_test',
+  sources: files(
+    'tests/notification_recent_apps_test.cpp',
+    'src/notification/notification_recent_apps.cpp',
+    'src/util/string_utils.cpp',
+  ),
+  include_directories: _noctalia_inc,
+)
+
+test('notification_recent_apps', notification_recent_apps_test)
 
 workspace_alert_service_test = executable('workspace_alert_service_test',
   sources: files(
@@ -1087,6 +1108,20 @@ process_test = executable('process_test',
 )
 
 test('process', process_test)
+
+package_update_service_test = executable('package_update_service_test',
+  sources: files(
+    'tests/package_update_service_test.cpp',
+    'src/system/package_update_service.cpp',
+    'src/core/build_info.cpp',
+    'src/core/process/process.cpp',
+    'src/core/log.cpp',
+    'src/util/string_utils.cpp',
+  ) + [_git_revision_h],
+  include_directories: _noctalia_inc,
+)
+
+test('package_update_service', package_update_service_test)
 
 battery_hook_state_test = executable('battery_hook_state_test',
   sources: files(
@@ -1549,6 +1584,16 @@ test(
   args: [
     'tests/stratos_session_transition_test.sh',
     meson.current_source_dir() / 'packaging/stratos/hyprtia-session-transition',
+  ],
+  workdir: meson.current_source_dir(),
+)
+
+test(
+  'stratos_android_connect',
+  sh_program,
+  args: [
+    'tests/stratos_android_connect_test.sh',
+    meson.current_source_dir() / 'packaging/stratos/hyprtia-android-connect',
   ],
   workdir: meson.current_source_dir(),
 )

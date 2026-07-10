@@ -2,9 +2,9 @@
 
 #include "core/log.h"
 #include "i18n/i18n.h"
-#include "net/uri.h"
 #include "notification/notification.h"
 #include "notification/notification_display_name.h"
+#include "notification/notification_icon_resolver.h"
 #include "notification/notification_manager.h"
 #include "render/animation/animation.h"
 #include "render/core/renderer.h"
@@ -21,14 +21,12 @@
 #include <chrono>
 #include <cmath>
 #include <ctime>
-#include <filesystem>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <ranges>
 #include <string>
 #include <string_view>
-#include <unistd.h>
 #include <utility>
 #include <vector>
 
@@ -102,43 +100,6 @@ namespace {
   constexpr int kSummaryMaxLines = 2;
   constexpr int kBodyMaxLines = 3;
   constexpr int kExpandedMaxLines = 500;
-
-  std::filesystem::path remoteNotificationIconCachePath(std::string_view url) {
-    return std::filesystem::path("/tmp")
-        / "noctalia-notification-icons"
-        / (std::to_string(std::hash<std::string_view>{}(url)) + ".img");
-  }
-
-  std::string normalizeLocalIconPath(std::string_view iconValue) { return uri::normalizeFileUrl(iconValue); }
-
-  std::string resolveHistoryIconPath(const Notification& n, IconResolver& resolver, int targetSize) {
-    if (!n.icon.has_value() || n.icon->empty()) {
-      return {};
-    }
-    const std::string& iconValue = *n.icon;
-    if (uri::isRemoteUrl(iconValue)) {
-      const auto cached = remoteNotificationIconCachePath(iconValue);
-      std::error_code ec;
-      if (std::filesystem::exists(cached, ec) && std::filesystem::file_size(cached, ec) > 0) {
-        return cached.string();
-      }
-      return {};
-    }
-
-    const std::string localPath = normalizeLocalIconPath(iconValue);
-    if (!localPath.empty() && localPath.front() == '/') {
-      if (access(localPath.c_str(), R_OK) == 0) {
-        return localPath;
-      }
-      return {};
-    }
-    if (localPath.empty()) {
-      return {};
-    }
-
-    const std::string& resolved = resolver.resolve(localPath, targetSize);
-    return resolved.empty() ? std::string() : resolved;
-  }
 
   void applyNotificationCardStyle(Flex& card, float scale, float fillOpacity, bool showBorder) {
     applySectionCardStyle(card, scale, fillOpacity, showBorder);
@@ -515,7 +476,7 @@ namespace {
       m_image->setFit(ImageFit::Cover);
 
       const int targetSize = static_cast<int>(std::round(iconPx));
-      const std::string iconPath = resolveHistoryIconPath(entry.notification, iconResolver, targetSize);
+      const std::string iconPath = resolveNotificationIconPath(entry.notification, iconResolver, targetSize);
       if (!iconPath.empty()) {
         const bool ready = m_image->setSourceFile(renderer, iconPath, targetSize);
         if (ready) {

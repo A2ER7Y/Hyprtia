@@ -113,6 +113,7 @@ class MainLoop;
 class MprisService;
 class NetworkSecretAgent;
 class NotificationDBusHost;
+class PackageUpdateService;
 class PipeWirePollSource;
 class PipeWireService;
 class WirePlumberMixer;
@@ -281,6 +282,7 @@ private:
   ThumbnailService m_thumbnailService;
   WallpaperScanner m_wallpaperScanner;
   Bar m_bar;
+  std::unique_ptr<PackageUpdateService> m_packageUpdateService;
   Dock m_dock;
   DesktopWidgetsController m_desktopWidgetsController;
   LockScreen m_lockScreen;

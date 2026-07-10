@@ -508,6 +508,11 @@ void PanelManager::openPanel(const std::string& panelId, PanelOpenRequest reques
       resolvedOutputHeight = wlOutput->effectiveLogicalHeight();
     }
   }
+  if (resolvedOutputWidth > 0) {
+    panelWidth = static_cast<std::uint32_t>(
+        std::max(1.0f, m_activePanel->preferredWidthForOutput(static_cast<float>(resolvedOutputWidth)))
+    );
+  }
   // Backstop clamp: never request a surface larger than the output — the
   // compositor renders such a surface broken. This is sanity capping, not
   // work-area layout; if the compositor still configures smaller (exclusive

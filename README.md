@@ -41,6 +41,21 @@ systemctl --user enable --now hyprtia.service
 The launcher copies the StratOS defaults to `~/.config/noctalia/stratos.toml` only when no user TOML configuration
 exists. Existing Noctalia configurations are never overwritten.
 
+The StratOS profile ships an ActivSpot-inspired native top bar. It keeps the Noctalia v5 Settings app as the source of
+truth instead of starting ActivSpot's separate Quickshell process: the bar lanes, capsules, widget order, colors, launcher,
+and every widget setting remain editable in Hyprtia Settings.
+
+- The left side opens a compact Caelestia-style launcher below the bar, centered at one third of the display width.
+- Notifications show the ten most recent distinct application icons and an ellipsis when more are available.
+- The right side includes Android Connect, Arch/AUR/Flatpak/Snap/AppImage/Hyprtia update counts, and explicit performance
+  mode `ON`/`OFF` state.
+- The original clipboard history UI is disabled, while ordinary copy and paste continue to work.
+
+The linked AndroidConnect extension currently targets Noctalia's legacy Quickshell/QML plugin API and cannot load inside
+the native v5 runtime. `hyprtia-android-connect` opens that extension through its IPC when a compatible Quickshell instance
+is already running; otherwise it opens KDE Connect. Install `kdeconnect` for the native fallback. The extension's optional
+mirroring stack additionally needs `scrcpy`, `android-tools`, Qt Multimedia, and `v4l2loopback`.
+
 The StratOS profile uses the same session transitions as
 [Brain_Shell](https://github.com/Brainitech/Brain_Shell): `hyprshutdown` gracefully closes applications for logout,
 restart, and shutdown, while `hyprlock` provides the fade-in/fade-out lock and unlock screen. The package installs an
@@ -344,6 +359,11 @@ are maintained separately so upstream fixes can be merged with minimal conflict.
 
 Thank you to the [contributors](https://github.com/noctalia-dev/noctalia-shell/graphs/contributors) and community
 members who test Noctalia, report issues, share configurations, and help shape the project.
+
+The StratOS top-bar presentation is inspired by
+[ActivSpot](https://github.com/Devvvmn/ActivSpot) (GPLv3), and the Android compatibility launcher targets
+[AndroidConnect](https://github.com/demencia89/noctalia-shell-androidconnect-plugin) (GPLv2). Hyprtia does not copy or
+embed either project's QML sources.
 
 ## Donations
 

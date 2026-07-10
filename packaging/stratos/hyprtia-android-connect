@@ -1,0 +1,34 @@
+#!/bin/sh
+
+# The linked AndroidConnect plugin targets Noctalia's legacy Quickshell/QML
+# runtime. Hyprtia v5 is native, so prefer that plugin's IPC when a compatible
+# Quickshell instance is already running, then fall back to KDE Connect.
+
+set -eu
+
+plugin_dir=${HYPRTIA_ANDROID_CONNECT_PLUGIN_DIR:-"${XDG_CONFIG_HOME:-"$HOME/.config"}/noctalia/plugins/androidconnect"}
+
+if command -v qs >/dev/null 2>&1 && [ -f "$plugin_dir/manifest.json" ]; then
+  if qs ipc call plugin:androidconnect toggle >/dev/null 2>&1; then
+    exit 0
+  fi
+fi
+
+if command -v kdeconnect-app >/dev/null 2>&1; then
+  exec kdeconnect-app
+fi
+
+if command -v kdeconnect-settings >/dev/null 2>&1; then
+  exec kdeconnect-settings
+fi
+
+if command -v kdeconnect-cli >/dev/null 2>&1; then
+  exec kdeconnect-cli --list-devices
+fi
+
+if command -v notify-send >/dev/null 2>&1; then
+  notify-send -a Hyprtia "Android Connect" \
+    "Install KDE Connect, or install the AndroidConnect plugin in $plugin_dir"
+fi
+printf '%s\n' "Android Connect is unavailable: install KDE Connect or the AndroidConnect plugin." >&2
+exit 127

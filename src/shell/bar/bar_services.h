@@ -15,6 +15,7 @@ class MprisService;
 class NotificationManager;
 class PipeWireService;
 class PipeWireSpectrum;
+class PackageUpdateService;
 class PowerProfilesService;
 class RenderContext;
 class ScreenshotService;
@@ -40,6 +41,7 @@ struct BarServices {
   EasyEffectsService* easyEffects = nullptr;
   UPowerService* upower = nullptr;
   SystemMonitorService* sysmon = nullptr;
+  PackageUpdateService* packageUpdates = nullptr;
   PowerProfilesService* powerProfiles = nullptr;
   INetworkService* network = nullptr;
   IdleInhibitor* idleInhibitor = nullptr;

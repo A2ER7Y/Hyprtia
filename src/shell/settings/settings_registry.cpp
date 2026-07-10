@@ -1073,6 +1073,12 @@ namespace settings {
         ToggleSetting{cfg.shell.launcher.showIcons}, "launcher app icons hide"
     ));
     entries.push_back(makeEntry(
+        SettingsSection::Launcher, "launcher", tr("settings.schema.panels.launcher-width-fraction.label"),
+        tr("settings.schema.panels.launcher-width-fraction.description"), {"shell", "launcher", "width_fraction"},
+        SliderSetting{cfg.shell.launcher.widthFraction, 0.0f, 1.0f, 0.05f, false},
+        "launcher drawer width output fraction percentage"
+    ));
+    entries.push_back(makeEntry(
         SettingsSection::Launcher, "launcher", tr("settings.schema.panels.launcher-app-grid.label"),
         tr("settings.schema.panels.launcher-app-grid.description"), {"shell", "launcher", "app_grid"},
         ToggleSetting{cfg.shell.launcher.appGrid}, "launcher app grid icons view"

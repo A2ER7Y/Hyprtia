@@ -82,6 +82,7 @@
 #include "system/brightness_service.h"
 #include "system/distro_info.h"
 #include "system/easyeffects_service.h"
+#include "system/package_update_service.h"
 #include "system/system_monitor_service.h"
 #include "ui/app_icon_colorization.h"
 #include "ui/controls/input.h"
@@ -139,6 +140,7 @@ Application::Application()
     : m_lockKeysService(m_wayland), m_gammaService(m_wayland), m_locationService(m_configService, m_httpClient),
       m_weatherService(m_configService, m_httpClient),
       m_calendarService(m_configService, m_httpClient, &m_notificationManager) {
+  m_packageUpdateService = std::make_unique<PackageUpdateService>();
   m_notificationManager.loadPersistedHistory();
   notify::setInstance(&m_notificationManager);
 
@@ -164,6 +166,9 @@ Application::Application()
 }
 
 Application::~Application() {
+  if (m_packageUpdateService != nullptr) {
+    m_packageUpdateService->stop();
+  }
   TooltipManager::instance().shutdown();
   m_notificationManager.flushPersistedHistory();
   m_wayland.setClipboardService(nullptr);

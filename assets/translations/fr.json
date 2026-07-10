@@ -2044,6 +2044,10 @@
           "description": "Affiche les icônes des applications dans les résultats du lanceur",
           "label": "Afficher les icônes des applications"
         },
+        "launcher-width-fraction": {
+          "description": "Utilise cette fraction de l'écran cible pour la largeur du lanceur ; zéro conserve la largeur fixe par défaut",
+          "label": "Fraction de largeur de l'écran"
+        },
         "launcher-sort-by-usage": {
           "description": "Remonte les applications fréquemment utilisées en haut de la liste et affiche un filtre “Récemment utilisés”",
           "label": "Trier par utilisation"
@@ -2736,6 +2740,8 @@
         "net-rx": "Réception réseau",
         "net-tx": "Envoi réseau",
         "none": "Aucun",
+        "notification-bell": "Cloche",
+        "notification-icons": "Icônes des applications récentes",
         "on-hover": "Au survol",
         "output": "Sortie",
         "ram-percent": "RAM (%)",
@@ -2855,7 +2861,28 @@
           "label": "Glyph"
         },
         "hide-when-no-unread": {
-          "description": "Masquer le widget de notifications lorsqu'il n'y a pas de notifications non lues"
+          "description": "Masquer le widget de notifications lorsqu'il n'y a pas de notifications non lues",
+          "label": "Masquer sans nouveauté"
+        },
+        "hide-when-zero": {
+          "description": "Masquer le compteur de mises à jour lorsque toutes les sources disponibles indiquent zéro",
+          "label": "Masquer à zéro"
+        },
+        "max-app-icons": {
+          "description": "Nombre maximal d'icônes d'applications de notification récentes affichées dans la barre",
+          "label": "Nombre maximal d'icônes"
+        },
+        "notification-display-mode": {
+          "description": "Afficher une cloche ou les icônes des applications de notification distinctes les plus récentes",
+          "label": "Affichage des notifications"
+        },
+        "show-ellipsis": {
+          "description": "Afficher des points de suspension lorsque le nombre d'applications dépasse la limite configurée",
+          "label": "Afficher les points de suspension"
+        },
+        "show-state": {
+          "description": "Afficher si le profil d'alimentation performance est activé ou désactivé",
+          "label": "Afficher l'état performance"
         },
         "hide-when-off": {
           "label": "Cacher quand éteint"
@@ -2940,6 +2967,7 @@
         "test": "Test",
         "theme-mode": "Mode du thème",
         "tray": "Tray",
+        "updates": "Mises à jour",
         "volume": "Volume",
         "wallpaper": "Fond d'écran",
         "weather": "Météo"

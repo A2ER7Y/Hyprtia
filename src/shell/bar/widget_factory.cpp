@@ -40,6 +40,7 @@
 #include "shell/bar/widgets/test_widget.h"
 #include "shell/bar/widgets/theme_mode_widget.h"
 #include "shell/bar/widgets/tray_widget.h"
+#include "shell/bar/widgets/updates_widget.h"
 #include "shell/bar/widgets/volume_widget.h"
 #include "shell/bar/widgets/wallpaper_widget.h"
 #include "shell/bar/widgets/weather_widget.h"
@@ -102,12 +103,12 @@ WidgetFactory::WidgetFactory(const BarServices& services)
     : m_platform(services.platform), m_configService(services.config), m_config(services.config.config()),
       m_notifications(services.notifications), m_tray(services.tray), m_audio(services.audio),
       m_easyEffects(services.easyEffects), m_upower(services.upower), m_sysmon(services.sysmon),
-      m_powerProfiles(services.powerProfiles), m_network(services.network), m_idleInhibitor(services.idleInhibitor),
-      m_mpris(services.mpris), m_audioSpectrum(services.audioSpectrum), m_httpClient(services.httpClient),
-      m_weather(services.weather), m_nightLight(services.nightLight), m_themeService(services.theme),
-      m_bluetooth(services.bluetooth), m_brightness(services.brightness), m_lockKeys(services.lockKeys),
-      m_clipboard(services.clipboard), m_fileWatcher(services.fileWatcher), m_screenshots(services.screenshots),
-      m_renderContext(services.renderContext), m_scriptApi(services.scriptApi) {
+      m_packageUpdates(services.packageUpdates), m_powerProfiles(services.powerProfiles), m_network(services.network),
+      m_idleInhibitor(services.idleInhibitor), m_mpris(services.mpris), m_audioSpectrum(services.audioSpectrum),
+      m_httpClient(services.httpClient), m_weather(services.weather), m_nightLight(services.nightLight),
+      m_themeService(services.theme), m_bluetooth(services.bluetooth), m_brightness(services.brightness),
+      m_lockKeys(services.lockKeys), m_clipboard(services.clipboard), m_fileWatcher(services.fileWatcher),
+      m_screenshots(services.screenshots), m_renderContext(services.renderContext), m_scriptApi(services.scriptApi) {
   scripting::PluginRegistry::instance().ensureScanned();
 }
 
@@ -352,13 +353,37 @@ std::unique_ptr<Widget> WidgetFactory::create(
 
   if (type == "notifications") {
     const bool hideWhenNoUnread = wc != nullptr ? wc->getBool("hide_when_no_unread", false) : false;
-    auto widget = std::make_unique<NotificationWidget>(m_notifications, output, hideWhenNoUnread);
+    const std::string displayMode = wc != nullptr ? wc->getString("display_mode", "bell") : std::string{"bell"};
+    const auto maxAppIcons = static_cast<std::size_t>(
+        std::clamp<std::int64_t>(wc != nullptr ? wc->getInt("max_app_icons", 10) : 10, 1, 10)
+    );
+    const bool showEllipsis = wc != nullptr ? wc->getBool("show_ellipsis", true) : true;
+    auto widget = std::make_unique<NotificationWidget>(
+        m_notifications, output,
+        NotificationWidget::Options{
+            .hideWhenNoUnread = hideWhenNoUnread,
+            .displayMode = displayMode == "icons" ? NotificationWidgetDisplayMode::RecentApps
+                                                  : NotificationWidgetDisplayMode::Bell,
+            .maxAppIcons = maxAppIcons,
+            .showEllipsis = showEllipsis,
+        }
+    );
     widget->setContentScale(contentScale);
     return widget;
   }
 
   if (type == "power_profile") {
-    auto widget = std::make_unique<PowerProfileWidget>(m_powerProfiles);
+    const bool showState = wc != nullptr ? wc->getBool("show_state", false) : false;
+    auto widget = std::make_unique<PowerProfileWidget>(m_powerProfiles, showState);
+    widget->setContentScale(contentScale);
+    return widget;
+  }
+
+  if (type == "updates") {
+    const bool hideWhenZero = wc != nullptr ? wc->getBool("hide_when_zero", false) : false;
+    const std::string command = wc != nullptr ? wc->getString("command", "") : std::string{};
+    auto widget =
+        std::make_unique<UpdatesWidget>(m_packageUpdates, UpdatesWidget::Options{hideWhenZero, command});
     widget->setContentScale(contentScale);
     return widget;
   }

@@ -2109,6 +2109,10 @@
           "description": "Show application icons in launcher results",
           "label": "Show App Icons"
         },
+        "launcher-width-fraction": {
+          "description": "Use this fraction of the target display for the launcher width; zero keeps the fixed default width",
+          "label": "Display Width Fraction"
+        },
         "launcher-sort-by-usage": {
           "description": "Boost frequently used apps toward the top and show a Recently Used category filter",
           "label": "Sort by Usage"
@@ -2822,6 +2826,8 @@
         "net-rx": "Network RX",
         "net-tx": "Network TX",
         "none": "None",
+        "notification-bell": "Bell",
+        "notification-icons": "Recent App Icons",
         "on-hover": "On Hover",
         "output": "Output",
         "ram-percent": "RAM Percent",
@@ -3040,6 +3046,10 @@
           "description": "Hide the battery widget when fully charged",
           "label": "Hide When Full"
         },
+        "hide-when-zero": {
+          "description": "Hide the update counter when every available source reports zero updates",
+          "label": "Hide When Zero"
+        },
         "hide-when-no-connected-device": {
           "description": "Hide the bluetooth widget when no device is connected",
           "label": "Hide When No Connected Device"
@@ -3051,6 +3061,14 @@
         "hide-when-no-unread": {
           "description": "Hide the notifications widget when there are no unread notifications",
           "label": "Hide When No New"
+        },
+        "max-app-icons": {
+          "description": "Maximum number of recent notification app icons shown in the bar",
+          "label": "Maximum App Icons"
+        },
+        "notification-display-mode": {
+          "description": "Show a bell or the most recent distinct notification app icons",
+          "label": "Notification Display"
         },
         "hide-when-off": {
           "description": "Hide the lock key indicator when inactive",
@@ -3249,6 +3267,14 @@
           "description": "Show text next to the icon",
           "label": "Show Label"
         },
+        "show-state": {
+          "description": "Show whether the performance power profile is on or off",
+          "label": "Show Performance State"
+        },
+        "show-ellipsis": {
+          "description": "Show an ellipsis when more notification apps exist than fit in the configured limit",
+          "label": "Show Overflow Ellipsis"
+        },
         "show-num-lock": {
           "description": "Show Num Lock state",
           "label": "Show Num Lock"
@@ -3352,6 +3378,7 @@
         "test": "Test",
         "theme-mode": "Theme Mode",
         "tray": "Tray",
+        "updates": "Updates",
         "volume": "Volume",
         "wallpaper": "Wallpaper",
         "weather": "Weather",

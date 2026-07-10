@@ -30,6 +30,7 @@ class EasyEffectsService;
 class ScreenshotService;
 class INetworkService;
 class NotificationManager;
+class PackageUpdateService;
 class PipeWireService;
 class PipeWireSpectrum;
 class PowerProfilesService;
@@ -159,6 +160,7 @@ private:
   EasyEffectsService* m_easyEffects = nullptr;
   UPowerService* m_upower = nullptr;
   SystemMonitorService* m_sysmon = nullptr;
+  PackageUpdateService* m_packageUpdates = nullptr;
   PowerProfilesService* m_powerProfiles = nullptr;
   INetworkService* m_network = nullptr;
   IdleInhibitor* m_idleInhibitor = nullptr;

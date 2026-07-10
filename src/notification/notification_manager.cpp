@@ -545,6 +545,10 @@ const std::deque<Notification>& NotificationManager::all() const noexcept { retu
 
 const std::deque<NotificationHistoryEntry>& NotificationManager::history() const noexcept { return m_history; }
 
+std::vector<RecentNotificationApp> NotificationManager::recentNotificationApps(std::size_t maxApps) const {
+  return collectRecentNotificationApps(m_history, maxApps);
+}
+
 std::uint64_t NotificationManager::changeSerial() const noexcept { return m_changeSerial; }
 
 void NotificationManager::removeHistoryEntry(uint32_t id, std::optional<CloseReason> dbusCloseReason) {

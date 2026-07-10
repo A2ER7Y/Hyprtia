@@ -48,6 +48,7 @@ public:
   void clearUsage();
 
   [[nodiscard]] float preferredWidth() const override { return scaled(560.0f); }
+  [[nodiscard]] float preferredWidthForOutput(float outputWidth) const override;
   [[nodiscard]] float preferredHeight() const override { return scaled(500.0f); }
   [[nodiscard]] LayerShellLayer layer() const override { return LayerShellLayer::Overlay; }
   [[nodiscard]] LayerShellKeyboard keyboardMode() const override { return LayerShellKeyboard::Exclusive; }

@@ -82,6 +82,7 @@ namespace settings {
         {.type = "test", .labelKey = "settings.widgets.types.test", .glyph = "flask", .visibleInPicker = false},
         {.type = "theme_mode", .labelKey = "settings.widgets.types.theme-mode", .glyph = "theme-mode"},
         {.type = "tray", .labelKey = "settings.widgets.types.tray", .glyph = "apps"},
+        {.type = "updates", .labelKey = "settings.widgets.types.updates", .glyph = "download"},
         {.type = "volume", .labelKey = "settings.widgets.types.volume", .glyph = "volume-high"},
         {.type = "wallpaper", .labelKey = "settings.widgets.types.wallpaper", .glyph = "wallpaper-selector"},
         {.type = "weather", .labelKey = "settings.widgets.types.weather", .glyph = "weather-cloud"},
@@ -645,6 +646,10 @@ namespace settings {
         {"icon_only", "settings.widgets.options.icon-only"},
         {"text_only", "settings.widgets.options.text-only"},
     };
+    const std::vector<WidgetSettingSelectOption> notificationDisplay = {
+        {"bell", "settings.widgets.options.notification-bell"},
+        {"icons", "settings.widgets.options.notification-icons"},
+    };
     const std::vector<WidgetSettingSelectOption> volumeDeviceOptions = {
         {"output", "settings.widgets.options.output"},
         {"input", "settings.widgets.options.input"},
@@ -808,7 +813,26 @@ namespace settings {
     } else if (type == "network") {
       add(boolSpec("show_label", true));
     } else if (type == "notifications") {
+      {
+        auto display = segmentedSpec("display_mode", "bell", notificationDisplay);
+        display.labelKey = "settings.widgets.settings.notification-display-mode.label";
+        display.descriptionKey = "settings.widgets.settings.notification-display-mode.description";
+        add(std::move(display));
+      }
+      WidgetSettingVisibility iconMode{"display_mode", {"icons"}};
+      {
+        auto maxIcons = intSpec("max_app_icons", 10, 1.0, 10.0, 1.0);
+        maxIcons.visibleWhen = iconMode;
+        add(std::move(maxIcons));
+      }
+      {
+        auto ellipsis = boolSpec("show_ellipsis", true);
+        ellipsis.visibleWhen = iconMode;
+        add(std::move(ellipsis));
+      }
       add(boolSpec("hide_when_no_unread", false));
+    } else if (type == "power_profile") {
+      add(boolSpec("show_state", false));
     } else if (type == "privacy") {
       add(boolSpec("hide_inactive", false));
       add(intSpec("icon_spacing", 4, 0.0, 48.0, 1.0));
@@ -970,6 +994,9 @@ namespace settings {
           add(std::move(taskbarMaxWidth));
         }
       }
+    } else if (type == "updates") {
+      add(boolSpec("hide_when_zero", false));
+      add(stringSpec("command"));
     } else if (type == "tray") {
       add(stringListSpec("hidden"));
       add(stringListSpec("pinned"));

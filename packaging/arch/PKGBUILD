@@ -3,7 +3,7 @@
 
 pkgname=hyprtia
 pkgver=5.0.0_beta2.stratos1
-pkgrel=2
+pkgrel=3
 pkgdesc='Noctalia v5 Wayland shell adapted for StratOS'
 arch=('x86_64')
 url='https://github.com/A2ER7Y/Hyprtia'
@@ -27,6 +27,15 @@ optdepends=(
   'networkmanager: network controls'
   'bluez: Bluetooth controls'
   'power-profiles-daemon: power profile controls'
+  'pacman-contrib: official Arch repository update counter'
+  'yay: AUR update counter'
+  'paru: alternative AUR update counter'
+  'flatpak: Flatpak update counter'
+  'snapd: Snap update counter'
+  'appimageupdate: AppImage update counter'
+  'kdeconnect: Android Connect bar button and device integration'
+  'scrcpy: Android screen mirroring with the legacy AndroidConnect extension'
+  'android-tools: ADB support for the legacy AndroidConnect extension'
   'python: built-in KDE color-scheme template'
   'python-jeepney: KDE color-scheme reload over D-Bus'
 )

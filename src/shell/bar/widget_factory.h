@@ -24,6 +24,7 @@ class ScreenshotService;
 class INetworkService;
 class PipeWireService;
 class PipeWireSpectrum;
+class PackageUpdateService;
 class PowerProfilesService;
 class TrayService;
 class SystemMonitorService;
@@ -58,6 +59,7 @@ private:
   EasyEffectsService* m_easyEffects;
   UPowerService* m_upower;
   SystemMonitorService* m_sysmon;
+  PackageUpdateService* m_packageUpdates;
   PowerProfilesService* m_powerProfiles;
   INetworkService* m_network;
   IdleInhibitor* m_idleInhibitor;

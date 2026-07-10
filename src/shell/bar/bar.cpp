@@ -1108,6 +1108,7 @@ bool Bar::initialize(const BarServices& services) {
   m_easyEffects = services.easyEffects;
   m_upower = services.upower;
   m_sysmon = services.sysmon;
+  m_packageUpdates = services.packageUpdates;
   m_powerProfiles = services.powerProfiles;
   m_network = services.network;
   m_idleInhibitor = services.idleInhibitor;
@@ -1159,6 +1160,7 @@ BarServices Bar::services() const {
       .easyEffects = m_easyEffects,
       .upower = m_upower,
       .sysmon = m_sysmon,
+      .packageUpdates = m_packageUpdates,
       .powerProfiles = m_powerProfiles,
       .network = m_network,
       .idleInhibitor = m_idleInhibitor,

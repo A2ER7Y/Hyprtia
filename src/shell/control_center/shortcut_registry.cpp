@@ -355,9 +355,7 @@ namespace {
     }
     std::string_view iconOff() const override { return "balanced"; }
     bool isToggle() const override { return true; }
-    bool active() const override {
-      return m_svc != nullptr && !m_svc->activeProfile().empty() && m_svc->activeProfile() != "balanced";
-    }
+    bool active() const override { return m_svc != nullptr && m_svc->activeProfile() == "performance"; }
     void onClick() override { cycle(1); }
     void onRightClick() override { cycle(-1); }
     void onScroll(int direction) override { cycle(direction); }

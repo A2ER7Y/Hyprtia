@@ -80,6 +80,7 @@
 #include "system/brightness_service.h"
 #include "system/distro_info.h"
 #include "system/easyeffects_service.h"
+#include "system/package_update_service.h"
 #include "system/system_monitor_service.h"
 #include "ui/app_icon_colorization.h"
 #include "ui/controls/context_menu_popup.h"
@@ -761,6 +762,7 @@ void Application::initBarDockAndLayout() {
       .easyEffects = m_easyEffectsService.get(),
       .upower = m_upowerService.get(),
       .sysmon = m_systemMonitor.get(),
+      .packageUpdates = m_packageUpdateService.get(),
       .powerProfiles = m_powerProfilesService.get(),
       .network = m_networkService.get(),
       .idleInhibitor = &m_idleInhibitor,
@@ -779,6 +781,12 @@ void Application::initBarDockAndLayout() {
       .screenshots = &m_screenshotService,
       .scriptApi = &m_scriptApi,
   });
+  if (m_packageUpdateService != nullptr) {
+    m_packageUpdateService->setChangeCallback([this]() {
+      DeferredCall::callLater([this]() { m_bar.refresh(); });
+    });
+    m_packageUpdateService->start();
+  }
   m_idleInhibitor.setAnchorSurfacesProvider([this]() { return m_bar.caffeineAnchorSurfaces(); });
   m_bar.setOpenWidgetSettingsCallback([this](std::string barName, std::string widgetName) {
     if (m_panelManager.isOpen()) {

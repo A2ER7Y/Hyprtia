@@ -7,6 +7,7 @@ offline_mode = false
 telemetry_enabled = false
 polkit_agent = true
 setup_wizard_enabled = false
+clipboard_enabled = false
 
 # Match Brain_Shell's session transitions: hyprlock fades into and out of the
 # lock screen, while hyprshutdown gracefully closes applications before exit.
@@ -34,6 +35,81 @@ action = "shutdown"
 command = "hyprtia-session-transition shutdown"
 variant = "destructive"
 shortcut = "5"
+
+[shell.panel]
+launcher_placement = "floating"
+launcher_position = "auto"
+floating_offset = 8
+
+[shell.launcher]
+categories = false
+show_icons = true
+compact = true
+app_grid = false
+sort_by_usage = true
+width_fraction = 0.333333
+
+# ActivSpot-inspired top bar implemented with native Hyprtia widgets so every
+# lane, capsule and widget remains editable in Settings > Bar.
+[bar.activspot]
+position = "top"
+thickness = 48
+background_opacity = 0.0
+radius = 14
+margin_h = 4
+margin_v = 8
+padding = 8
+widget_spacing = 4
+shadow = false
+auto_hide = false
+reserve_space = true
+capsule = true
+capsule_fill = "surface"
+capsule_border = "outline"
+capsule_padding = 10
+capsule_radius = 14
+capsule_opacity = 0.88
+
+start = ["caelestia_launcher", "workspaces"]
+center = ["clock", "media"]
+end = [
+  "tray",
+  "compact_notifications",
+  "android_connect",
+  "updates",
+  "performance_mode",
+  "network",
+  "volume",
+  "battery",
+  "control-center",
+  "settings",
+  "session",
+]
+
+[widget.caelestia_launcher]
+type = "launcher"
+glyph = "apps"
+
+[widget.compact_notifications]
+type = "notifications"
+display_mode = "icons"
+max_app_icons = 10
+show_ellipsis = true
+hide_when_no_unread = false
+
+[widget.android_connect]
+type = "custom_button"
+glyph = "device-mobile"
+tooltip = "Android Connect"
+command = "hyprtia-android-connect"
+
+[widget.updates]
+type = "updates"
+hide_when_zero = false
+
+[widget.performance_mode]
+type = "power_profile"
+show_state = true
 
 [wallpaper]
 enabled = true

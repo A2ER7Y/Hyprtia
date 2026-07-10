@@ -26,6 +26,16 @@ struct NotificationHistoryEntry {
   std::uint64_t eventSerial = 0;
 };
 
+struct RecentNotificationApp {
+  std::string key;
+  std::string displayName;
+  std::optional<std::string> icon;
+  std::optional<std::string> desktopEntry;
+};
+
+[[nodiscard]] std::vector<RecentNotificationApp>
+collectRecentNotificationApps(const std::deque<NotificationHistoryEntry>& history, std::size_t maxApps);
+
 constexpr int32_t kDefaultNotificationTimeout = 6000;
 
 // Upper bound on action pairs (key + label) kept per notification. Enforced once at ingress
@@ -118,6 +128,9 @@ public:
 
   // Recent notification history including closed notifications.
   [[nodiscard]] const std::deque<NotificationHistoryEntry>& history() const noexcept;
+  // Distinct applications ordered newest first. Request maxApps + 1 when the
+  // caller needs to know whether an ellipsis should be shown.
+  [[nodiscard]] std::vector<RecentNotificationApp> recentNotificationApps(std::size_t maxApps) const;
   [[nodiscard]] std::uint64_t changeSerial() const noexcept;
   void removeHistoryEntry(uint32_t id, std::optional<CloseReason> dbusCloseReason = std::nullopt);
   void clearHistory();

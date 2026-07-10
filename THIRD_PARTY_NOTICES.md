@@ -26,3 +26,15 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Design and compatibility references
+
+The native StratOS bar layout is visually inspired by ActivSpot at commit
+`19566260ff509a2ee0462aa2d8ee948e7b028c4d`:
+<https://github.com/Devvvmn/ActivSpot> (GPL-3.0).
+
+The `hyprtia-android-connect` compatibility launcher targets AndroidConnect at
+commit `6f8172b6135b97cb5a878311ae3723fe4e5aa324`:
+<https://github.com/demencia89/noctalia-shell-androidconnect-plugin> (GPL-2.0).
+
+No source code or assets from either project are distributed in Hyprtia.

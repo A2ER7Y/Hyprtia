@@ -686,6 +686,14 @@ PanelPlacement LauncherPanel::panelPlacement() const noexcept {
   return m_config != nullptr ? m_config->config().shell.panel.launcherPlacement : PanelPlacement::Floating;
 }
 
+float LauncherPanel::preferredWidthForOutput(float outputWidth) const {
+  if (m_config == nullptr || outputWidth <= 0.0f) {
+    return preferredWidth();
+  }
+  const float fraction = std::clamp(m_config->config().shell.launcher.widthFraction, 0.0f, 1.0f);
+  return fraction > 0.0f ? std::round(outputWidth * fraction) : preferredWidth();
+}
+
 void LauncherPanel::addProvider(std::unique_ptr<LauncherProvider> provider) {
   provider->initialize();
   provider->setResultsChangedCallback([this]() { onProviderResultsChanged(); });

@@ -6,11 +6,12 @@
 
 class Glyph;
 class InputArea;
+class Label;
 class PowerProfilesService;
 
 class PowerProfileWidget : public Widget {
 public:
-  explicit PowerProfileWidget(PowerProfilesService* powerProfiles);
+  explicit PowerProfileWidget(PowerProfilesService* powerProfiles, bool showState = false);
 
   void create() override;
 
@@ -23,6 +24,9 @@ private:
   PowerProfilesService* m_powerProfiles = nullptr;
   InputArea* m_area = nullptr;
   Glyph* m_glyph = nullptr;
+  Label* m_stateLabel = nullptr;
   std::string m_lastProfile;
+  bool m_showState = false;
   bool m_available = false;
+  bool m_performanceActive = false;
 };
