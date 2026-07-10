@@ -1029,7 +1029,6 @@ notification_recent_apps_test = executable('notification_recent_apps_test',
   sources: files(
     'tests/notification_recent_apps_test.cpp',
     'src/notification/notification_recent_apps.cpp',
-    'src/util/string_utils.cpp',
   ),
   include_directories: _noctalia_inc,
 )
@@ -1116,7 +1115,6 @@ package_update_service_test = executable('package_update_service_test',
     'src/core/build_info.cpp',
     'src/core/process/process.cpp',
     'src/core/log.cpp',
-    'src/util/string_utils.cpp',
   ) + [_git_revision_h],
   include_directories: _noctalia_inc,
 )
