@@ -21,6 +21,7 @@ are designed as one cohesive shell instead of a collection of unrelated panels a
 Build the native package from a clean clone:
 
 ```sh
+cd packaging/arch
 makepkg -si
 ```
 

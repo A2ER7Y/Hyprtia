@@ -34,8 +34,10 @@ source=()
 sha256sums=()
 
 prepare() {
+  local repo_root
+  repo_root=$(realpath "$startdir/../..")
   mkdir -p "$srcdir/$pkgname"
-  git -C "$startdir" archive --format=tar HEAD |
+  git -C "$repo_root" archive --format=tar HEAD |
     tar -xf - -C "$srcdir/$pkgname"
 }
 
