@@ -11,13 +11,13 @@ license=('MIT')
 depends=(
   'wayland' 'libglvnd' 'freetype2' 'fontconfig'
   'cairo' 'pango' 'harfbuzz' 'libxkbcommon' 'glib2'
-  'sdbus-cpp' 'libpipewire' 'wireplumber' 'polkit'
+  'sdbus-cpp' 'libpipewire' 'libwireplumber' 'pipewire' 'wireplumber' 'polkit'
   'pam' 'curl' 'libwebp' 'librsvg' 'libqalculate'
-  'libxml2' 'md4c' 'jemalloc'
+  'libxml2' 'md4c' 'tomlplusplus' 'jemalloc' 'hicolor-icon-theme'
 )
 makedepends=(
   'git' 'meson' 'ninja' 'pkgconf' 'wayland-protocols'
-  'tomlplusplus' 'nlohmann-json' 'stb'
+  'nlohmann-json' 'stb'
 )
 optdepends=(
   'upower: battery and power device integration'
@@ -26,6 +26,8 @@ optdepends=(
   'networkmanager: network controls'
   'bluez: Bluetooth controls'
   'power-profiles-daemon: power profile controls'
+  'python: built-in KDE color-scheme template'
+  'python-jeepney: KDE color-scheme reload over D-Bus'
 )
 provides=('noctalia=5.0.0')
 conflicts=('noctalia' 'noctalia-git')

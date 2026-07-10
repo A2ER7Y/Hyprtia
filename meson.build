@@ -966,6 +966,11 @@ install_data(
   install_dir: get_option('prefix') / 'lib' / 'systemd' / 'user',
 )
 
+install_data(
+  'LICENSE',
+  install_dir: get_option('datadir') / 'licenses' / 'hyprtia',
+)
+
 if build_tests
 
 notification_history_utf8_test = executable('notification_history_utf8_test',
