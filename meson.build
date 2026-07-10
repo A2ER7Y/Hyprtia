@@ -1117,6 +1117,7 @@ package_update_service_test = executable('package_update_service_test',
     'src/core/log.cpp',
   ) + [_git_revision_h],
   include_directories: _noctalia_inc,
+  cpp_args: ['-DNOCTALIA_VERSION="5.0.0"'],
 )
 
 test('package_update_service', package_update_service_test)
