@@ -1,2 +1,8 @@
 option('tests', type: 'feature', value: 'auto', description: 'Build unit tests (auto: on for unsanitized debug builds)')
 option('jemalloc', type: 'feature', value: 'auto', description: 'Use jemalloc on glibc builds')
+option(
+  'source_assets_fallback',
+  type: 'boolean',
+  value: true,
+  description: 'Allow runtime assets to be loaded from the source tree (disable for distro packages)',
+)

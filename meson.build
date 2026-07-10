@@ -883,6 +883,8 @@ _noctalia_inc = [
   include_directories('.'),
 ]
 
+_source_assets_dir = get_option('source_assets_fallback') ? meson.project_source_root() / 'assets' : ''
+
 # ── Executable ────────────────────────────────────────────────────────────────
 noctalia_exe = executable('noctalia',
   sources: _noctalia_sources + _protocol_sources + _protocol_headers + [_git_revision_h],
@@ -925,7 +927,7 @@ noctalia_exe = executable('noctalia',
   include_directories: _noctalia_inc,
   cpp_args: [
     '-Wall', '-Wextra', '-Wno-missing-field-initializers', '-Wpedantic', '-Wconversion', '-Wshadow',
-    '-DNOCTALIA_SOURCE_ASSETS_DIR="' + meson.project_source_root() / 'assets' + '"',
+    '-DNOCTALIA_SOURCE_ASSETS_DIR="' + _source_assets_dir + '"',
     '-DNOCTALIA_INSTALL_PREFIX="' + get_option('prefix') + '"',
     '-DNOCTALIA_INSTALL_DATADIR="' + get_option('datadir') + '"',
     '-DNOCTALIA_VERSION="' + meson.project_version() + '"',

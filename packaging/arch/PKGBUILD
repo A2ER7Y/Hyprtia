@@ -44,7 +44,8 @@ prepare() {
 build() {
   arch-meson "$pkgname" build \
     -Dtests=enabled \
-    -Djemalloc=enabled
+    -Djemalloc=enabled \
+    -Dsource_assets_fallback=false
   meson compile -C build
 }
 
