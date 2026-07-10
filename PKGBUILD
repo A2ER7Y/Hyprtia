@@ -1,0 +1,55 @@
+# Maintainer: A2ER7Y
+# StratOS package recipe. Build from a clean clone with: makepkg -si
+
+pkgname=hyprtia
+pkgver=5.0.0_beta2.stratos1
+pkgrel=1
+pkgdesc='Noctalia v5 Wayland shell adapted for StratOS'
+arch=('x86_64')
+url='https://github.com/A2ER7Y/Hyprtia'
+license=('MIT')
+depends=(
+  'wayland' 'libglvnd' 'freetype2' 'fontconfig'
+  'cairo' 'pango' 'harfbuzz' 'libxkbcommon' 'glib2'
+  'sdbus-cpp' 'libpipewire' 'wireplumber' 'polkit'
+  'pam' 'curl' 'libwebp' 'librsvg' 'libqalculate'
+  'libxml2' 'md4c' 'jemalloc'
+)
+makedepends=(
+  'git' 'meson' 'ninja' 'pkgconf' 'wayland-protocols'
+  'tomlplusplus' 'nlohmann-json' 'stb'
+)
+optdepends=(
+  'upower: battery and power device integration'
+  'ddcutil: external monitor brightness control'
+  'wtype: clipboard auto-paste fallback'
+  'networkmanager: network controls'
+  'bluez: Bluetooth controls'
+  'power-profiles-daemon: power profile controls'
+)
+provides=('noctalia=5.0.0')
+conflicts=('noctalia' 'noctalia-git')
+options=('!debug' 'lto')
+source=()
+sha256sums=()
+
+prepare() {
+  mkdir -p "$srcdir/$pkgname"
+  git -C "$startdir" archive --format=tar HEAD |
+    tar -xf - -C "$srcdir/$pkgname"
+}
+
+build() {
+  arch-meson "$pkgname" build \
+    -Dtests=enabled \
+    -Djemalloc=enabled
+  meson compile -C build
+}
+
+check() {
+  meson test -C build --print-errorlogs
+}
+
+package() {
+  meson install -C build --destdir "$pkgdir"
+}

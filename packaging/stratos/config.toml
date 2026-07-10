@@ -1,0 +1,33 @@
+# Hyprtia defaults for the StratOS Hyprland spin.
+# This file is copied only when the user has no Noctalia configuration.
+
+[shell]
+font_family = "Noto Sans"
+offline_mode = false
+telemetry_enabled = false
+polkit_agent = true
+setup_wizard_enabled = false
+
+[wallpaper]
+enabled = true
+directory = "~/Pictures/Wallpapers"
+fill_mode = "crop"
+
+[theme]
+mode = "dark"
+source = "builtin"
+builtin = "Tokyo-Night"
+
+[theme.templates]
+enable_builtin_templates = true
+builtin_ids = ["hyprland", "gtk3", "gtk4", "ghostty"]
+enable_community_templates = false
+
+[notification]
+enable_daemon = true
+
+[audio]
+enable_sounds = true
+
+[weather]
+enabled = false
