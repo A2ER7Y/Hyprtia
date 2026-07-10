@@ -957,7 +957,18 @@ install_data(
 )
 
 install_data(
+  'packaging/stratos/hyprtia-session-transition',
+  install_dir: get_option('bindir'),
+  install_mode: 'rwxr-xr-x',
+)
+
+install_data(
   'packaging/stratos/config.toml',
+  install_dir: get_option('datadir') / 'hyprtia',
+)
+
+install_data(
+  'packaging/stratos/brain-shell-hyprlock.conf',
   install_dir: get_option('datadir') / 'hyprtia',
 )
 
@@ -968,6 +979,11 @@ install_data(
 
 install_data(
   'LICENSE',
+  install_dir: get_option('datadir') / 'licenses' / 'hyprtia',
+)
+
+install_data(
+  'THIRD_PARTY_NOTICES.md',
   install_dir: get_option('datadir') / 'licenses' / 'hyprtia',
 )
 
@@ -1524,6 +1540,16 @@ test(
   'stratos_launcher',
   sh_program,
   args: ['tests/stratos_launcher_test.sh', meson.current_source_dir() / 'packaging/stratos/hyprtia'],
+  workdir: meson.current_source_dir(),
+)
+
+test(
+  'stratos_session_transition',
+  sh_program,
+  args: [
+    'tests/stratos_session_transition_test.sh',
+    meson.current_source_dir() / 'packaging/stratos/hyprtia-session-transition',
+  ],
   workdir: meson.current_source_dir(),
 )
 

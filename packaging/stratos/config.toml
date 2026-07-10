@@ -8,6 +8,33 @@ telemetry_enabled = false
 polkit_agent = true
 setup_wizard_enabled = false
 
+# Match Brain_Shell's session transitions: hyprlock fades into and out of the
+# lock screen, while hyprshutdown gracefully closes applications before exit.
+[[shell.session.actions]]
+action = "lock"
+command = "hyprtia-session-transition lock"
+shortcut = "1"
+
+[[shell.session.actions]]
+action = "logout"
+command = "hyprtia-session-transition logout"
+shortcut = "2"
+
+[[shell.session.actions]]
+action = "lock_and_suspend"
+shortcut = "3"
+
+[[shell.session.actions]]
+action = "reboot"
+command = "hyprtia-session-transition reboot"
+shortcut = "4"
+
+[[shell.session.actions]]
+action = "shutdown"
+command = "hyprtia-session-transition shutdown"
+variant = "destructive"
+shortcut = "5"
+
 [wallpaper]
 enabled = true
 directory = "~/Pictures/Wallpapers"

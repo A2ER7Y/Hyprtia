@@ -41,9 +41,14 @@ systemctl --user enable --now hyprtia.service
 The launcher copies the StratOS defaults to `~/.config/noctalia/stratos.toml` only when no user TOML configuration
 exists. Existing Noctalia configurations are never overwritten.
 
-Hyprtia replaces the bar, notifications, wallpaper, clipboard watcher, lock screen, and polkit agent. Comment the
-corresponding `waybar`, `swaync`, `hyprpaper`, `wl-paste`, `hyprlock`, and `polkit-gnome` autostart lines before using
-those Hyprtia features, otherwise both implementations will run.
+The StratOS profile uses the same session transitions as
+[Brain_Shell](https://github.com/Brainitech/Brain_Shell): `hyprshutdown` gracefully closes applications for logout,
+restart, and shutdown, while `hyprlock` provides the fade-in/fade-out lock and unlock screen. The package installs an
+adapted Tokyo Night lock layout and keeps the native Hyprtia lock-and-suspend path for secure suspend ordering.
+
+Hyprtia replaces the bar, notifications, wallpaper, clipboard watcher, and polkit agent. Comment the corresponding
+`waybar`, `swaync`, `hyprpaper`, `wl-paste`, and `polkit-gnome` autostart lines before using those Hyprtia features,
+otherwise both implementations will run. Do not autostart `hyprlock`; Hyprtia launches it on demand.
 
 Suggested Hyprland bindings:
 
