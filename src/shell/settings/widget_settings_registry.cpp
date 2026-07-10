@@ -6,6 +6,7 @@
 #include "scripting/plugin_registry.h"
 #include "shell/settings/font_family_catalog.h"
 #include "shell/settings/font_weight_catalog.h"
+#include "shell/settings/font_weight_i18n.h"
 #include "ui/style.h"
 
 #include <algorithm>
@@ -548,15 +549,24 @@ namespace settings {
     return entries;
   }
 
-  std::vector<WidgetSettingSpec> commonWidgetSettingSpecs(std::string_view shellFontFamily) {
+  static std::vector<WidgetSettingSpec>
+  commonWidgetSettingSpecsImpl(std::string_view shellFontFamily, bool populateDynamicFontOptions) {
     const WidgetSettingVisibility capsuleOn{"capsule", {"true"}};
 
     auto anchor = withGroup(boolSpec("anchor", false, true), WidgetSettingGroup::Presentation);
     auto scale = withGroup(doubleSpec("scale", 1.0, 0.2, 2.5, 0.05), WidgetSettingGroup::Presentation);
     auto widgetColor = withGroup(colorSpec("color", {}, true), WidgetSettingGroup::Presentation);
     auto widgetIconColor = withGroup(colorSpec("icon_color", {}, true), WidgetSettingGroup::Presentation);
-    auto fontWeightOptions =
-        buildLabelFontWeightSelectOptions(shellFontFamily, FontWeightSelectKind::WidgetInheritDefault);
+    std::vector<WidgetSettingSelectOption> fontWeightOptions;
+    if (populateDynamicFontOptions) {
+      fontWeightOptions =
+          buildLabelFontWeightSelectOptions(shellFontFamily, FontWeightSelectKind::WidgetInheritDefault);
+    } else {
+      fontWeightOptions.push_back({"", "settings.options.font-weight.default"});
+      for (const auto& option : kFontWeightOptions) {
+        fontWeightOptions.push_back({std::to_string(static_cast<int>(option.weight)), std::string(option.labelKey)});
+      }
+    }
     auto fontWeight =
         withGroup(selectSpec("font_weight", "", std::move(fontWeightOptions), true), WidgetSettingGroup::Presentation);
     fontWeight.integerValue = true;
@@ -565,7 +575,9 @@ namespace settings {
     // elsewhere but absent here must still load. Empty value = inherit the bar/shell font.
     auto fontFamily = baseSpec("font_family", WidgetControlKind::Select, std::string{}, true);
     fontFamily.schema.type = schema::WidgetSettingType::String;
-    fontFamily.options = buildFontFamilySelectOptions();
+    if (populateDynamicFontOptions) {
+      fontFamily.options = buildFontFamilySelectOptions();
+    }
     fontFamily.literalLabels = true;
     fontFamily = withGroup(std::move(fontFamily), WidgetSettingGroup::Presentation);
 
@@ -598,10 +610,16 @@ namespace settings {
     };
   }
 
-  std::vector<WidgetSettingSpec>
-  widgetSettingSpecs(std::string_view type, std::string_view shellFontFamily, bool supportsTaskbarWorkspaceGrouping) {
+  std::vector<WidgetSettingSpec> commonWidgetSettingSpecs(std::string_view shellFontFamily) {
+    return commonWidgetSettingSpecsImpl(shellFontFamily, true);
+  }
+
+  static std::vector<WidgetSettingSpec> widgetSettingSpecsImpl(
+      std::string_view type, std::string_view shellFontFamily, bool supportsTaskbarWorkspaceGrouping,
+      bool populateDynamicFontOptions
+  ) {
     std::vector<WidgetSettingSpec> specs;
-    auto commonSpecs = commonWidgetSettingSpecs(shellFontFamily);
+    auto commonSpecs = commonWidgetSettingSpecsImpl(shellFontFamily, populateDynamicFontOptions);
 
     auto add = [&](WidgetSettingSpec spec) { specs.push_back(std::move(spec)); };
     const std::vector<WidgetSettingSelectOption> shortFull = {
@@ -1107,6 +1125,11 @@ namespace settings {
     return specs;
   }
 
+  std::vector<WidgetSettingSpec>
+  widgetSettingSpecs(std::string_view type, std::string_view shellFontFamily, bool supportsTaskbarWorkspaceGrouping) {
+    return widgetSettingSpecsImpl(type, shellFontFamily, supportsTaskbarWorkspaceGrouping, true);
+  }
+
   std::vector<WidgetSettingSpec> manifestSettingSpecs(
       const std::vector<scripting::ManifestField>& fields, const scripting::PluginTranslationCatalog* translations
   ) {
@@ -1351,7 +1374,7 @@ namespace settings {
 
   noctalia::config::schema::WidgetSettingSchema widgetSettingSchema(std::string_view type) {
     noctalia::config::schema::WidgetSettingSchema out;
-    for (const auto& spec : widgetSettingSpecs(type, "sans-serif")) {
+    for (const auto& spec : widgetSettingSpecsImpl(type, "sans-serif", true, false)) {
       out.push_back(spec.schema);
     }
     return out;
@@ -1359,7 +1382,20 @@ namespace settings {
 
   noctalia::config::schema::WidgetSettingSchema widgetSettingSchema(std::string_view type, const WidgetConfig* config) {
     noctalia::config::schema::WidgetSettingSchema out;
-    for (const auto& spec : widgetSettingSpecs(type, config, "sans-serif")) {
+    std::vector<WidgetSettingSpec> specs;
+    if (auto pw = resolvePluginWidget(type)) {
+      scripting::PluginTranslationCatalog translations;
+      translations.load(pw->sourcePath.parent_path());
+      specs = manifestSettingSpecs(pw->entry->settings, &translations);
+      auto commonSpecs = commonWidgetSettingSpecsImpl("sans-serif", false);
+      specs.insert(
+          specs.end(), std::make_move_iterator(commonSpecs.begin()), std::make_move_iterator(commonSpecs.end())
+      );
+    } else {
+      (void)config;
+      specs = widgetSettingSpecsImpl(type, "sans-serif", true, false);
+    }
+    for (const auto& spec : specs) {
       out.push_back(spec.schema);
     }
     return out;

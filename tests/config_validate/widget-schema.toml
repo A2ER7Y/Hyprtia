@@ -1,0 +1,5 @@
+[widget.validation_clock]
+type = "clock"
+format = "{:%H:%M}"
+font_family = "Noto Sans"
+font_weight = 700
