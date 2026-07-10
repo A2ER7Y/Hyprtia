@@ -30,7 +30,7 @@ public:
     bool showEllipsis = true;
   };
 
-  NotificationWidget(NotificationManager* manager, wl_output* output, Options options = {});
+  NotificationWidget(NotificationManager* manager, wl_output* output, Options options);
 
   void create() override;
 
