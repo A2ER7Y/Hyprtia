@@ -36,6 +36,7 @@ pkgbase = hyprtia-assistant
 	depends = python-tiktoken
 	depends = vte4
 	depends = webkitgtk-6.0
+	depends = wget
 	optdepends = ollama: native offline model server
 	optdepends = python-ollama: Ollama model management
 	optdepends = python-gtts: automatic language-aware Google TTS

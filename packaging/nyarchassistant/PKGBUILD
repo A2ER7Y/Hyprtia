@@ -37,6 +37,7 @@ depends=(
   'python-tiktoken'
   'vte4'
   'webkitgtk-6.0'
+  'wget'
 )
 optdepends=(
   'ollama: native offline model server'
