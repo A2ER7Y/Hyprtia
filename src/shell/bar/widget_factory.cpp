@@ -358,6 +358,10 @@ std::unique_ptr<Widget> WidgetFactory::create(
     const auto maxAppIcons =
         static_cast<std::size_t>(std::clamp<std::int64_t>(wc != nullptr ? wc->getInt("max_app_icons", 10) : 10, 1, 10));
     const bool showEllipsis = wc != nullptr ? wc->getBool("show_ellipsis", true) : true;
+    const float appIconSize =
+        static_cast<float>(std::clamp<std::int64_t>(wc != nullptr ? wc->getInt("icon_size", 18) : 18, 8, 48));
+    const float iconSpacing =
+        static_cast<float>(std::clamp<std::int64_t>(wc != nullptr ? wc->getInt("icon_spacing", 4) : 4, 0, 24));
     auto widget = std::make_unique<NotificationWidget>(
         m_notifications, output,
         NotificationWidget::Options{
@@ -366,6 +370,8 @@ std::unique_ptr<Widget> WidgetFactory::create(
                                                   : NotificationWidgetDisplayMode::Bell,
             .maxAppIcons = maxAppIcons,
             .showEllipsis = showEllipsis,
+            .appIconSize = appIconSize,
+            .iconSpacing = iconSpacing,
         }
     );
     widget->setContentScale(contentScale);
@@ -374,15 +380,39 @@ std::unique_ptr<Widget> WidgetFactory::create(
 
   if (type == "power_profile") {
     const bool showState = wc != nullptr ? wc->getBool("show_state", false) : false;
-    auto widget = std::make_unique<PowerProfileWidget>(m_powerProfiles, showState);
+    const std::string stateDisplay =
+        wc != nullptr ? wc->getString("state_display", "performance") : std::string{"performance"};
+    const bool hideWhenUnavailable = wc != nullptr ? wc->getBool("hide_when_unavailable", false) : false;
+    auto widget = std::make_unique<PowerProfileWidget>(
+        m_powerProfiles,
+        PowerProfileWidget::Options{
+            .showState = showState,
+            .stateDisplay = stateDisplay == "profile" ? PowerProfileWidget::StateDisplay::ProfileName
+                                                       : PowerProfileWidget::StateDisplay::PerformanceStatus,
+            .hideWhenUnavailable = hideWhenUnavailable,
+        }
+    );
     widget->setContentScale(contentScale);
     return widget;
   }
 
   if (type == "updates") {
     const bool hideWhenZero = wc != nullptr ? wc->getBool("hide_when_zero", false) : false;
+    const bool showLabel = wc != nullptr ? wc->getBool("show_label", true) : true;
+    std::string glyph = wc != nullptr ? wc->getString("glyph", "download") : std::string{"download"};
+    if (glyph.empty()) {
+      glyph = "download";
+    }
     const std::string command = wc != nullptr ? wc->getString("command", "") : std::string{};
-    auto widget = std::make_unique<UpdatesWidget>(m_packageUpdates, UpdatesWidget::Options{hideWhenZero, command});
+    auto widget = std::make_unique<UpdatesWidget>(
+        m_packageUpdates,
+        UpdatesWidget::Options{
+            .hideWhenZero = hideWhenZero,
+            .showLabel = showLabel,
+            .glyph = std::move(glyph),
+            .command = command,
+        }
+    );
     widget->setContentScale(contentScale);
     return widget;
   }

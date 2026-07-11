@@ -1,6 +1,7 @@
 #include "shell/bar/widgets/power_profile_widget.h"
 
 #include "dbus/power/power_profiles_service.h"
+#include "i18n/i18n.h"
 #include "render/scene/input_area.h"
 #include "render/scene/node.h"
 #include "ui/builders.h"
@@ -14,8 +15,8 @@
 #include <memory>
 #include <wayland-client-protocol.h>
 
-PowerProfileWidget::PowerProfileWidget(PowerProfilesService* powerProfiles, bool showState)
-    : m_powerProfiles(powerProfiles), m_showState(showState) {}
+PowerProfileWidget::PowerProfileWidget(PowerProfilesService* powerProfiles, Options options)
+    : m_powerProfiles(powerProfiles), m_options(options) {}
 
 void PowerProfileWidget::create() {
   auto area = std::make_unique<InputArea>();
@@ -36,18 +37,19 @@ void PowerProfileWidget::create() {
           .out = &m_glyph,
           .glyph = "balanced",
           .glyphSize = Style::baseGlyphSize * m_contentScale,
-          .color = widgetIconColorOr(colorSpecFromRole(ColorRole::OnSurface)),
+          .color = widgetIconColorOr(colorSpecFromRole(ColorRole::OnSurfaceVariant)),
       })
   );
   area->addChild(
       ui::label({
           .out = &m_stateLabel,
-          .text = "OFF",
-          .fontSize = Style::fontSizeCaption * m_contentScale,
-          .fontWeight = FontWeight::Bold,
+          .text = i18n::tr("bar.widgets.power-profile.off"),
+          .fontSize = Style::fontSizeBody * m_contentScale,
+          .fontWeight = labelFontWeight(),
+          .fontFamily = labelFontFamily(),
           .color = widgetForegroundOr(colorSpecFromRole(ColorRole::OnSurfaceVariant)),
           .maxLines = 1,
-          .visible = m_showState,
+          .visible = m_options.showState,
       })
   );
 
@@ -68,24 +70,29 @@ void PowerProfileWidget::doLayout(Renderer& renderer, float containerWidth, floa
       m_available ? (m_performanceActive ? activeColor : inactiveColor) : colorSpecFromRole(ColorRole::OnSurfaceVariant)
   );
   m_glyph->measure(renderer);
-  m_stateLabel->setVisible(m_showState);
-  m_stateLabel->setParticipatesInLayout(m_showState);
+  m_stateLabel->setVisible(m_options.showState);
+  m_stateLabel->setParticipatesInLayout(m_options.showState);
 
-  if (!m_showState) {
+  if (!m_options.showState) {
     m_glyph->setPosition(0.0f, 0.0f);
     rootNode->setSize(m_glyph->width(), m_glyph->height());
     return;
   }
 
-  m_stateLabel->setText(m_performanceActive ? "ON" : "OFF");
-  m_stateLabel->setFontSize(Style::fontSizeCaption * m_contentScale);
+  m_stateLabel->setText(
+      m_options.stateDisplay == StateDisplay::ProfileName
+          ? profileLabel(m_lastProfile)
+          : i18n::tr(m_performanceActive ? "bar.widgets.power-profile.on" : "bar.widgets.power-profile.off")
+  );
+  const bool vertical = containerHeight > containerWidth;
+  m_stateLabel->setFontSize((vertical ? Style::fontSizeCaption : Style::fontSizeBody) * m_contentScale);
+  m_stateLabel->setFontWeight(labelFontWeight());
   m_stateLabel->setColor(
       m_performanceActive ? widgetForegroundOr(activeColor)
                           : widgetForegroundOr(colorSpecFromRole(ColorRole::OnSurfaceVariant))
   );
   m_stateLabel->measure(renderer);
 
-  const bool vertical = containerHeight > containerWidth;
   const float spacing = Style::spaceXs * m_contentScale;
   if (vertical) {
     const float width = std::max(m_glyph->width(), m_stateLabel->width());
@@ -113,10 +120,11 @@ void PowerProfileWidget::syncState(Renderer& renderer) {
   const bool available = m_powerProfiles != nullptr && (!profile.empty() || !m_powerProfiles->profiles().empty());
   const bool performanceActive = profile == "performance";
 
-  if (profile == m_lastProfile && available == m_available && performanceActive == m_performanceActive) {
+  if (m_haveState && profile == m_lastProfile && available == m_available && performanceActive == m_performanceActive) {
     return;
   }
 
+  m_haveState = true;
   m_available = available;
   m_lastProfile = profile;
   m_performanceActive = performanceActive;
@@ -129,11 +137,23 @@ void PowerProfileWidget::syncState(Renderer& renderer) {
   );
   m_glyph->measure(renderer);
   if (m_stateLabel != nullptr) {
-    m_stateLabel->setText(m_performanceActive ? "ON" : "OFF");
+    m_stateLabel->setText(
+        m_options.stateDisplay == StateDisplay::ProfileName
+            ? profileLabel(m_lastProfile)
+            : i18n::tr(m_performanceActive ? "bar.widgets.power-profile.on" : "bar.widgets.power-profile.off")
+    );
   }
-  m_area->setTooltip(m_performanceActive ? "Performance mode: ON" : "Performance mode: OFF");
+  m_area->setTooltip(
+      i18n::tr(
+          "bar.widgets.power-profile.tooltip", "profile",
+          profile.empty() ? i18n::tr("bar.widgets.power-profile.unavailable") : profileLabel(profile)
+      )
+  );
   m_area->setEnabled(m_available);
   if (auto* rootNode = root(); rootNode != nullptr) {
+    const bool visible = !m_options.hideWhenUnavailable || m_available;
+    rootNode->setVisible(visible);
+    rootNode->setParticipatesInLayout(visible);
     rootNode->setOpacity(m_available ? 1.0f : 0.55f);
     rootNode->markLayoutDirty();
   }

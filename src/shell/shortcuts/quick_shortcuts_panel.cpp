@@ -27,6 +27,21 @@ namespace {
 
 } // namespace
 
+const WidgetConfig* QuickShortcutsPanel::widgetConfig() const {
+  if (m_config == nullptr) {
+    return nullptr;
+  }
+  const auto& widgets = m_config->config().widgets;
+  if (!pendingOpenContext().empty()) {
+    const auto it = widgets.find(std::string(pendingOpenContext()));
+    if (it != widgets.end() && it->second.type == "shortcuts") {
+      return &it->second;
+    }
+  }
+  const auto fallback = widgets.find("shortcuts");
+  return fallback != widgets.end() ? &fallback->second : nullptr;
+}
+
 std::vector<QuickShortcutsPanel::Entry> QuickShortcutsPanel::effectiveEntries() const {
   std::vector<Entry> entries;
   if (m_config == nullptr) {
@@ -34,6 +49,10 @@ std::vector<QuickShortcutsPanel::Entry> QuickShortcutsPanel::effectiveEntries() 
   }
 
   const auto& shortcuts = m_config->config().shell.shortcuts;
+  const WidgetConfig* config = widgetConfig();
+  const std::string terminalGlyph = config != nullptr ? config->getString("terminal_glyph", "terminal-2") : "terminal-2";
+  const std::string commandGlyph = config != nullptr ? config->getString("command_glyph", "player-play") : "player-play";
+  const std::string appGlyph = config != nullptr ? config->getString("app_glyph", "apps") : "apps";
   entries.reserve(shortcuts.commands.size() + shortcuts.pinned.size());
   for (const auto& value : shortcuts.commands) {
     const auto parsed = quick_shortcuts::parseCommandEntry(value);
@@ -43,7 +62,7 @@ std::vector<QuickShortcutsPanel::Entry> QuickShortcutsPanel::effectiveEntries() 
     entries.push_back(
         Entry{
             .label = parsed->label,
-            .glyph = parsed->terminal ? "terminal-2" : "player-play",
+            .glyph = parsed->terminal ? terminalGlyph : commandGlyph,
             .command = parsed->command,
             .terminal = parsed->terminal,
         }
@@ -54,7 +73,7 @@ std::vector<QuickShortcutsPanel::Entry> QuickShortcutsPanel::effectiveEntries() 
     entries.push_back(
         Entry{
             .label = desktopEntry.name.empty() ? desktopEntry.id : desktopEntry.name,
-            .glyph = "apps",
+            .glyph = appGlyph,
             .desktopEntry = std::move(desktopEntry),
         }
     );
@@ -68,11 +87,8 @@ std::size_t QuickShortcutsPanel::entryCountForLayout() const {
 
 std::size_t QuickShortcutsPanel::columns() const {
   std::size_t configured = 4;
-  if (m_config != nullptr) {
-    const auto it = m_config->config().widgets.find("shortcuts");
-    if (it != m_config->config().widgets.end()) {
-      configured = static_cast<std::size_t>(std::clamp<std::int64_t>(it->second.getInt("columns", 4), 1, 6));
-    }
+  if (const WidgetConfig* config = widgetConfig(); config != nullptr) {
+    configured = static_cast<std::size_t>(std::clamp<std::int64_t>(config->getInt("columns", 4), 1, 6));
   }
   return std::min(configured, std::max<std::size_t>(1, entryCountForLayout()));
 }
@@ -83,11 +99,44 @@ std::size_t QuickShortcutsPanel::rows() const {
   return (count + columnCount - 1) / columnCount;
 }
 
+float QuickShortcutsPanel::buttonWidth() const {
+  const WidgetConfig* config = widgetConfig();
+  return static_cast<float>(
+      std::clamp<std::int64_t>(
+          config != nullptr ? config->getInt("button_width", static_cast<std::int64_t>(kDefaultButtonWidth))
+                            : static_cast<std::int64_t>(kDefaultButtonWidth),
+          96, 240
+      )
+  );
+}
+
+float QuickShortcutsPanel::buttonHeight() const {
+  const WidgetConfig* config = widgetConfig();
+  return static_cast<float>(
+      std::clamp<std::int64_t>(
+          config != nullptr ? config->getInt("button_height", static_cast<std::int64_t>(kDefaultButtonHeight))
+                            : static_cast<std::int64_t>(kDefaultButtonHeight),
+          64, 180
+      )
+  );
+}
+
+float QuickShortcutsPanel::entryGlyphSize() const {
+  const WidgetConfig* config = widgetConfig();
+  return static_cast<float>(
+      std::clamp<std::int64_t>(
+          config != nullptr ? config->getInt("entry_glyph_size", static_cast<std::int64_t>(kDefaultGlyphSize))
+                            : static_cast<std::int64_t>(kDefaultGlyphSize),
+          16, 48
+      )
+  );
+}
+
 float QuickShortcutsPanel::preferredWidth() const {
   const std::size_t columnCount = columns();
-  const float gap = Style::spaceSm;
+  const float gap = Style::spaceXs;
   return scaled(
-      kButtonMinWidth * static_cast<float>(columnCount)
+      buttonWidth() * static_cast<float>(columnCount)
       + gap * static_cast<float>(columnCount > 1 ? columnCount - 1 : 0)
       + Style::panelPadding * 2.0f
   );
@@ -95,9 +144,9 @@ float QuickShortcutsPanel::preferredWidth() const {
 
 float QuickShortcutsPanel::preferredHeight() const {
   const std::size_t rowCount = rows();
-  const float gap = Style::spaceSm;
+  const float gap = Style::spaceXs;
   return std::ceil(scaled(
-      kButtonMinHeight * static_cast<float>(rowCount)
+      buttonHeight() * static_cast<float>(rowCount)
       + gap * static_cast<float>(rowCount > 1 ? rowCount - 1 : 0)
       + Style::panelPadding * 2.0f
   ));
@@ -113,7 +162,7 @@ void QuickShortcutsPanel::create() {
         .align = FlexAlign::Center,
         .justify = FlexJustify::Center,
         .minWidth = scaled(320.0f),
-        .minHeight = scaled(kButtonMinHeight),
+        .minHeight = scaled(buttonHeight()),
     });
     empty->addChild(
         ui::label({
@@ -129,12 +178,12 @@ void QuickShortcutsPanel::create() {
   const float scale = contentScale();
   auto grid = std::make_unique<GridView>();
   grid->setColumns(columns());
-  grid->setColumnGap(Style::spaceSm * scale);
-  grid->setRowGap(Style::spaceSm * scale);
+  grid->setColumnGap(Style::spaceXs * scale);
+  grid->setRowGap(Style::spaceXs * scale);
   grid->setStretchItems(true);
   grid->setUniformCellSize(true);
-  grid->setMinCellWidth(kButtonMinWidth * scale);
-  grid->setMinCellHeight(kButtonMinHeight * scale);
+  grid->setMinCellWidth(buttonWidth() * scale);
+  grid->setMinCellHeight(buttonHeight() * scale);
   m_grid = grid.get();
 
   m_buttons.reserve(m_entries.size());
@@ -156,14 +205,14 @@ Button* QuickShortcutsPanel::createEntryButton(const Entry& entry, std::size_t i
   button->setDirection(FlexDirection::Vertical);
   button->setAlign(FlexAlign::Center);
   button->setJustify(FlexJustify::Center);
-  button->setGap(Style::spaceSm * scale);
+  button->setGap(Style::spaceXs * scale);
   button->setContentAlign(ButtonContentAlign::Center);
-  button->setFontSize(Style::fontSizeBody * scale);
-  button->setGlyphSize(26.0f * scale);
-  button->setPadding(Style::spaceMd * scale, Style::spaceLg * scale);
+  button->setFontSize(Style::fontSizeMini * scale);
+  button->setGlyphSize(entryGlyphSize() * scale);
+  button->setPadding(Style::spaceSm * scale, Style::spaceSm * scale);
   button->setRadius(Style::scaledRadiusLg(scale));
-  button->setMinWidth(kButtonMinWidth * scale);
-  button->setMinHeight(kButtonMinHeight * scale);
+  button->setMinWidth(buttonWidth() * scale);
+  button->setMinHeight(buttonHeight() * scale);
   button->setFlexGrow(1.0f);
   button->setOnClick([this, index]() { activateEntry(index); });
   return button.release();

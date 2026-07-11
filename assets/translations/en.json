@@ -80,6 +80,18 @@
         "wired": "Wired",
         "yes": "Yes"
       },
+      "notifications": {
+        "actions": "Left click: open notifications · Right click: toggle Do Not Disturb",
+        "dnd": "Do Not Disturb is enabled",
+        "empty": "No unread notifications",
+        "unread": "Unread notifications"
+      },
+      "power-profile": {
+        "off": "Off",
+        "on": "On",
+        "tooltip": "Power profile: {profile}",
+        "unavailable": "Unavailable"
+      },
       "privacy": {
         "camera": "Camera",
         "microphone": "Microphone",
@@ -101,6 +113,13 @@
         "swap": "Swap",
         "system": "System",
         "upload": "Upload"
+      },
+      "updates": {
+        "available": "Available updates: {count}",
+        "checking": "Checking updates",
+        "command-action": "Right click: open updater",
+        "refresh-action": "Left click: refresh",
+        "sources": "Arch: {arch} · AUR: {aur} · Flatpak: {flatpak} · Snap: {snap} · AppImage: {appimage} · Hyprtia: {hyprtia}"
       },
       "volume": {
         "device": "Device",
@@ -2806,13 +2825,20 @@
     },
     "widgets": {
       "instances": {
+        "android-connect": "Android Connect",
+        "assistant": "Hyprtia Assistant",
+        "caelestia-launcher": "Caelestia Launcher",
+        "compact-notifications": "Compact Notifications",
         "cpu": "CPU",
         "date": "Date",
         "input-volume": "Input Volume",
         "network-rx": "Network RX",
         "network-tx": "Network TX",
         "output-volume": "Output Volume",
+        "performance-mode": "Performance Mode",
         "ram": "RAM",
+        "shortcuts": "Quick Shortcuts",
+        "updates": "Update Counter",
         "temp": "Temperature"
       },
       "options": {
@@ -2844,6 +2870,8 @@
         "notification-icons": "Recent App Icons",
         "on-hover": "On Hover",
         "output": "Output",
+        "performance-status": "Performance On / Off",
+        "profile-name": "Active Profile Name",
         "ram-percent": "RAM Percent",
         "ram-used": "RAM Used",
         "screenshot-primary-fullscreen": "Fullscreen",
@@ -2883,6 +2911,10 @@
           "description": "Media artwork size in pixels",
           "label": "Art Size"
         },
+        "app-glyph": {
+          "description": "Glyph used for pinned applications in the quick-shortcuts panel",
+          "label": "Application Glyph"
+        },
         "bands": {
           "description": "Number of visualizer bands",
           "label": "Bands"
@@ -2890,6 +2922,14 @@
         "cam-filter-regex": {
           "description": "Regular expression for camera process names to ignore",
           "label": "Camera Filter Regex"
+        },
+        "button-height": {
+          "description": "Minimum height of each quick-shortcut tile in pixels",
+          "label": "Shortcut Tile Height"
+        },
+        "button-width": {
+          "description": "Minimum width of each quick-shortcut tile in pixels",
+          "label": "Shortcut Tile Width"
         },
         "capsule": {
           "description": "Draw a capsule behind this widget",
@@ -2940,6 +2980,10 @@
         "command": {
           "description": "Shell command run when left-clicking this button",
           "label": "Left Click Command"
+        },
+        "command-glyph": {
+          "description": "Glyph used for non-terminal commands in the quick-shortcuts panel",
+          "label": "Command Glyph"
         },
         "custom-image": {
           "description": "Path to a custom image. Leave empty to use the icon glyph.",
@@ -2994,6 +3038,10 @@
         "empty-color": {
           "description": "Color role used for empty workspaces; fixed hex colors are also supported",
           "label": "Empty Color"
+        },
+        "entry-glyph-size": {
+          "description": "Glyph size inside quick-shortcut tiles in pixels",
+          "label": "Shortcut Glyph Size"
         },
         "focused-color": {
           "description": "Color role used for the focused workspace; fixed hex colors are also supported",
@@ -3068,6 +3116,10 @@
           "description": "Hide the update counter when every available source reports zero updates",
           "label": "Hide When Zero"
         },
+        "hide-when-unavailable": {
+          "description": "Hide the power-profile widget when the service is unavailable",
+          "label": "Hide When Unavailable"
+        },
         "hide-when-no-connected-device": {
           "description": "Hide the bluetooth widget when no device is connected",
           "label": "Hide When No Connected Device"
@@ -3118,7 +3170,8 @@
         },
         "icon-spacing": {
           "description": "Spacing between privacy indicator icons in pixels",
-          "label": "Icon Spacing"
+          "label": "Icon Spacing",
+          "notifications-description": "Spacing between recent notification app icons in pixels"
         },
         "inactive-color": {
           "description": "Color used for inactive privacy indicators; fixed hex colors are also supported",
@@ -3321,6 +3374,14 @@
           "description": "System statistic to display",
           "label": "Stat"
         },
+        "state-display": {
+          "description": "Text shown next to the power-profile icon",
+          "label": "State Text"
+        },
+        "terminal-glyph": {
+          "description": "Glyph used for terminal commands in the quick-shortcuts panel",
+          "label": "Terminal Command Glyph"
+        },
         "taskbar-max-width": {
           "description": "Total width budget in pixels; window titles shrink to fit and hide when too narrow",
           "label": "Taskbar Max Width"
@@ -3340,6 +3401,10 @@
         "type": {
           "description": "Built-in widget type for this named widget",
           "label": "Type"
+        },
+        "updates-command": {
+          "description": "Shell command run when right-clicking the update counter",
+          "label": "Right Click Updater Command"
         },
         "vertical-format": {
           "description": "Optional format used on vertical bars",

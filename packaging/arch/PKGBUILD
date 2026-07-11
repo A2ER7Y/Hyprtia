@@ -3,7 +3,7 @@
 
 pkgname=hyprtia
 pkgver=5.0.0_beta2.stratos1
-pkgrel=6
+pkgrel=7
 pkgdesc='Noctalia v5 Wayland shell adapted for StratOS'
 arch=('x86_64')
 url='https://github.com/A2ER7Y/Hyprtia'

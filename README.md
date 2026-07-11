@@ -51,6 +51,12 @@ and every widget setting remain editable in Hyprtia Settings.
   mode `ON`/`OFF` state.
 - The original clipboard history UI is disabled, while ordinary copy and paste continue to work.
 
+Open **Settings → Bar**, select a named Hyprtia widget, and edit it with the same native controls as Noctalia widgets.
+Compact Notifications exposes icon count, size, spacing and overflow; Update Counter exposes its glyph, label, visibility
+and right-click command; Performance Mode can show `ON`/`OFF` or the active profile and hide when unavailable; Quick
+Shortcuts exposes columns, tile dimensions and entry glyphs. The Android Connect and Assistant instances use the native
+Custom Button editor for glyphs, labels, tooltips and click commands.
+
 The linked AndroidConnect extension currently targets Noctalia's legacy Quickshell/QML plugin API and cannot load inside
 the native v5 runtime. `hyprtia-android-connect` opens that extension through its IPC when a compatible Quickshell instance
 is already running; otherwise it opens KDE Connect. Install `kdeconnect` for the native fallback. The extension's optional

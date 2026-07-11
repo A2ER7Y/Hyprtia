@@ -353,6 +353,27 @@ namespace settings {
       if (name == "network_rx") {
         return tr("settings.widgets.instances.network-rx");
       }
+      if (name == "caelestia_launcher") {
+        return tr("settings.widgets.instances.caelestia-launcher");
+      }
+      if (name == "compact_notifications") {
+        return tr("settings.widgets.instances.compact-notifications");
+      }
+      if (name == "android_connect") {
+        return tr("settings.widgets.instances.android-connect");
+      }
+      if (name == "assistant") {
+        return tr("settings.widgets.instances.assistant");
+      }
+      if (name == "shortcuts") {
+        return tr("settings.widgets.instances.shortcuts");
+      }
+      if (name == "updates") {
+        return tr("settings.widgets.instances.updates");
+      }
+      if (name == "performance_mode") {
+        return tr("settings.widgets.instances.performance-mode");
+      }
       return std::string(name);
     }
 
@@ -672,6 +693,10 @@ namespace settings {
         {"bell", "settings.widgets.options.notification-bell"},
         {"icons", "settings.widgets.options.notification-icons"},
     };
+    const std::vector<WidgetSettingSelectOption> powerProfileStateDisplay = {
+        {"performance", "settings.widgets.options.performance-status"},
+        {"profile", "settings.widgets.options.profile-name"},
+    };
     const std::vector<WidgetSettingSelectOption> volumeDeviceOptions = {
         {"output", "settings.widgets.options.output"},
         {"input", "settings.widgets.options.input"},
@@ -852,9 +877,26 @@ namespace settings {
         ellipsis.visibleWhen = iconMode;
         add(std::move(ellipsis));
       }
+      {
+        auto iconSize = intSpec("icon_size", 18, 8.0, 48.0, 1.0);
+        iconSize.visibleWhen = iconMode;
+        add(std::move(iconSize));
+      }
+      {
+        auto iconSpacing = intSpec("icon_spacing", 4, 0.0, 24.0, 1.0);
+        iconSpacing.descriptionKey = "settings.widgets.settings.icon-spacing.notifications-description";
+        iconSpacing.visibleWhen = iconMode;
+        add(std::move(iconSpacing));
+      }
       add(boolSpec("hide_when_no_unread", false));
     } else if (type == "power_profile") {
       add(boolSpec("show_state", false));
+      {
+        auto stateDisplay = segmentedSpec("state_display", "performance", powerProfileStateDisplay);
+        stateDisplay.visibleWhen = WidgetSettingVisibility{"show_state", {"true"}};
+        add(std::move(stateDisplay));
+      }
+      add(boolSpec("hide_when_unavailable", false));
     } else if (type == "privacy") {
       add(boolSpec("hide_inactive", false));
       add(intSpec("icon_spacing", 4, 0.0, 48.0, 1.0));
@@ -869,6 +911,12 @@ namespace settings {
       add(stringSpec("custom_image", ""));
       add(boolSpec("custom_image_colorize", false));
       add(intSpec("columns", 4, 1.0, 6.0, 1.0));
+      add(intSpec("button_width", 124, 96.0, 240.0, 1.0, true));
+      add(intSpec("button_height", 92, 64.0, 180.0, 1.0, true));
+      add(intSpec("entry_glyph_size", 26, 16.0, 48.0, 1.0, true));
+      add(glyphSpec("command_glyph", "player-play", true));
+      add(glyphSpec("terminal_glyph", "terminal-2", true));
+      add(glyphSpec("app_glyph", "apps", true));
     } else if (type == "settings") {
       add(glyphSpec("glyph", "settings"));
       add(stringSpec("custom_image", ""));
@@ -1022,8 +1070,15 @@ namespace settings {
         }
       }
     } else if (type == "updates") {
+      add(glyphSpec("glyph", "download"));
+      add(boolSpec("show_label", true));
       add(boolSpec("hide_when_zero", false));
-      add(stringSpec("command"));
+      {
+        auto command = stringSpec("command");
+        command.labelKey = "settings.widgets.settings.updates-command.label";
+        command.descriptionKey = "settings.widgets.settings.updates-command.description";
+        add(std::move(command));
+      }
     } else if (type == "tray") {
       add(stringListSpec("hidden"));
       add(stringListSpec("pinned"));

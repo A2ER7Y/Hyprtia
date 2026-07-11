@@ -13,6 +13,8 @@ class UpdatesWidget : public Widget {
 public:
   struct Options {
     bool hideWhenZero = false;
+    bool showLabel = true;
+    std::string glyph = "download";
     std::string command;
   };
 

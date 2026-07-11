@@ -106,6 +106,8 @@ type = "notifications"
 display_mode = "icons"
 max_app_icons = 10
 show_ellipsis = true
+icon_size = 18
+icon_spacing = 4
 hide_when_no_unread = false
 
 [widget.android_connect]
@@ -124,14 +126,24 @@ command = "hyprtia-assistant"
 type = "shortcuts"
 glyph = "bookmark"
 columns = 4
+button_width = 124
+button_height = 92
+entry_glyph_size = 26
+command_glyph = "player-play"
+terminal_glyph = "terminal-2"
+app_glyph = "apps"
 
 [widget.updates]
 type = "updates"
+glyph = "download"
+show_label = true
 hide_when_zero = false
 
 [widget.performance_mode]
 type = "power_profile"
 show_state = true
+state_display = "performance"
+hide_when_unavailable = false
 
 [wallpaper]
 enabled = true

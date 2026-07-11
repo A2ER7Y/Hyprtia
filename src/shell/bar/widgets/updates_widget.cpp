@@ -1,6 +1,7 @@
 #include "shell/bar/widgets/updates_widget.h"
 
 #include "core/process/process.h"
+#include "i18n/i18n.h"
 #include "render/core/renderer.h"
 #include "render/scene/input_area.h"
 #include "render/scene/node.h"
@@ -37,7 +38,7 @@ void UpdatesWidget::create() {
   area->addChild(
       ui::glyph({
           .out = &m_glyph,
-          .glyph = "download",
+          .glyph = m_options.glyph.empty() ? "download" : m_options.glyph,
           .glyphSize = Style::baseGlyphSize * m_contentScale,
           .color = widgetIconColorOr(colorSpecFromRole(ColorRole::OnSurfaceVariant)),
       })
@@ -46,10 +47,12 @@ void UpdatesWidget::create() {
       ui::label({
           .out = &m_label,
           .text = "0",
-          .fontSize = Style::fontSizeCaption * m_contentScale,
-          .fontWeight = FontWeight::Bold,
+          .fontSize = Style::fontSizeBody * m_contentScale,
+          .fontWeight = labelFontWeight(),
+          .fontFamily = labelFontFamily(),
           .color = widgetForegroundOr(colorSpecFromRole(ColorRole::OnSurface)),
           .maxLines = 1,
+          .visible = m_options.showLabel,
       })
   );
   setRoot(std::move(area));
@@ -69,13 +72,22 @@ void UpdatesWidget::doLayout(Renderer& renderer, float containerWidth, float con
   m_glyph->setGlyphSize(Style::baseGlyphSize * m_contentScale);
   m_glyph->setColor(widgetIconColorOr(accent));
   m_glyph->measure(renderer);
-  m_label->setFontSize(Style::fontSizeCaption * m_contentScale);
+  const bool vertical = containerHeight > containerWidth;
+  m_label->setVisible(m_options.showLabel);
+  m_label->setParticipatesInLayout(m_options.showLabel);
+  m_label->setFontSize((vertical ? Style::fontSizeCaption : Style::fontSizeBody) * m_contentScale);
+  m_label->setFontWeight(labelFontWeight());
   m_label->setColor(
       widgetForegroundOr(hasUpdates ? colorSpecFromRole(ColorRole::Primary) : colorSpecFromRole(ColorRole::OnSurface))
   );
-  m_label->measure(renderer);
+  if (m_options.showLabel) {
+    m_label->measure(renderer);
+  } else {
+    m_glyph->setPosition(0.0f, 0.0f);
+    rootNode->setSize(m_glyph->width(), m_glyph->height());
+    return;
+  }
 
-  const bool vertical = containerHeight > containerWidth;
   const float spacing = Style::spaceXs * m_contentScale;
   if (vertical) {
     const float width = std::max(m_glyph->width(), m_label->width());
@@ -120,16 +132,18 @@ void UpdatesWidget::syncState() {
 
 std::string UpdatesWidget::tooltipText(const PackageUpdateSnapshot& state) const {
   auto count = [](int value) { return value < 0 ? std::string{"—"} : std::to_string(value); };
-  std::string tooltip = state.checking ? "Checking updates" : "Available updates: " + std::to_string(state.total());
-  tooltip += "\nArch: " + count(state.arch);
-  tooltip += " · AUR: " + count(state.aur);
-  tooltip += " · Flatpak: " + count(state.flatpak);
-  tooltip += " · Snap: " + count(state.snap);
-  tooltip += " · AppImage: " + count(state.appimage);
-  tooltip += " · Hyprtia: " + count(state.hyprtia);
-  tooltip += "\nLeft click: refresh";
+  std::string tooltip = state.checking
+      ? i18n::tr("bar.widgets.updates.checking")
+      : i18n::tr("bar.widgets.updates.available", "count", state.total());
+  tooltip += "\n"
+      + i18n::tr(
+                 "bar.widgets.updates.sources", "arch", count(state.arch), "aur", count(state.aur), "flatpak",
+                 count(state.flatpak), "snap", count(state.snap), "appimage", count(state.appimage), "hyprtia",
+                 count(state.hyprtia)
+      );
+  tooltip += "\n" + i18n::tr("bar.widgets.updates.refresh-action");
   if (!m_options.command.empty()) {
-    tooltip += " · Right click: open updater";
+    tooltip += " · " + i18n::tr("bar.widgets.updates.command-action");
   }
   return tooltip;
 }

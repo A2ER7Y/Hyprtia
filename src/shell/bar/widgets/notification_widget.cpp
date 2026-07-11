@@ -2,6 +2,7 @@
 
 #include "notification/notification_icon_resolver.h"
 #include "notification/notification_manager.h"
+#include "i18n/i18n.h"
 #include "render/core/renderer.h"
 #include "render/scene/input_area.h"
 #include "render/scene/node.h"
@@ -21,13 +22,13 @@
 
 namespace {
   constexpr float kDotBaseSize = 6.0f;
-  constexpr float kRecentAppIconSize = 18.0f;
-  constexpr float kRecentAppIconSpacing = 4.0f;
 } // namespace
 
 NotificationWidget::NotificationWidget(NotificationManager* manager, wl_output* /*output*/, Options options)
     : m_manager(manager), m_options(options) {
   m_options.maxAppIcons = std::clamp<std::size_t>(m_options.maxAppIcons, 1, 10);
+  m_options.appIconSize = std::clamp(m_options.appIconSize, 8.0f, 48.0f);
+  m_options.iconSpacing = std::clamp(m_options.iconSpacing, 0.0f, 24.0f);
 }
 
 void NotificationWidget::create() {
@@ -79,7 +80,7 @@ void NotificationWidget::create() {
           ui::glyph({
               .out = &fallback,
               .glyph = "bell",
-              .glyphSize = kRecentAppIconSize * m_contentScale,
+              .glyphSize = m_options.appIconSize * m_contentScale,
               .color = widgetIconColorOr(colorSpecFromRole(ColorRole::OnSurface)),
               .visible = false,
               .participatesInLayout = false,
@@ -92,8 +93,9 @@ void NotificationWidget::create() {
         ui::label({
             .out = &m_ellipsis,
             .text = "…",
-            .fontSize = Style::fontSizeBody * m_contentScale,
-            .fontWeight = FontWeight::Bold,
+            .fontSize = Style::fontSizeCaption * m_contentScale,
+            .fontWeight = labelFontWeight(),
+            .fontFamily = labelFontFamily(),
             .color = widgetForegroundOr(colorSpecFromRole(ColorRole::OnSurface)),
             .maxLines = 1,
             .visible = false,
@@ -110,6 +112,7 @@ void NotificationWidget::create() {
           .width = dotSize,
           .height = dotSize,
           .visible = false,
+          .participatesInLayout = false,
       })
   );
 
@@ -149,7 +152,7 @@ void NotificationWidget::doLayout(Renderer& renderer, float containerWidth, floa
     }
     visibleNodes.push_back(m_glyph);
   } else {
-    const float iconSize = kRecentAppIconSize * m_contentScale;
+    const float iconSize = m_options.appIconSize * m_contentScale;
     for (std::size_t i = 0; i < m_visibleAppCount; ++i) {
       Image* image = m_appIcons[i];
       Glyph* fallback = m_appFallbackGlyphs[i];
@@ -176,7 +179,8 @@ void NotificationWidget::doLayout(Renderer& renderer, float containerWidth, floa
     if (m_appsTruncated && m_options.showEllipsis && m_ellipsis != nullptr) {
       m_ellipsis->setVisible(true);
       m_ellipsis->setParticipatesInLayout(true);
-      m_ellipsis->setFontSize(Style::fontSizeBody * m_contentScale);
+      m_ellipsis->setFontSize(Style::fontSizeCaption * m_contentScale);
+      m_ellipsis->setFontWeight(labelFontWeight());
       m_ellipsis->setColor(widgetForegroundOr(colorSpecFromRole(ColorRole::OnSurface)));
       m_ellipsis->measure(renderer);
       visibleNodes.push_back(m_ellipsis);
@@ -184,7 +188,7 @@ void NotificationWidget::doLayout(Renderer& renderer, float containerWidth, floa
   }
 
   const bool vertical = containerHeight > containerWidth;
-  const float spacing = kRecentAppIconSpacing * m_contentScale;
+  const float spacing = m_options.iconSpacing * m_contentScale;
   float width = 0.0f;
   float height = 0.0f;
   if (vertical) {
@@ -241,6 +245,18 @@ void NotificationWidget::refreshIndicatorState(Renderer* renderer) {
   const bool stateChanged = hasNotifications != m_hasNotifications || dndEnabled != m_dndEnabled;
   m_hasNotifications = hasNotifications;
   m_dndEnabled = dndEnabled;
+  if (m_area != nullptr) {
+    std::string tooltip;
+    if (m_dndEnabled) {
+      tooltip = i18n::tr("bar.widgets.notifications.dnd");
+    } else if (m_hasNotifications) {
+      tooltip = i18n::tr("bar.widgets.notifications.unread");
+    } else {
+      tooltip = i18n::tr("bar.widgets.notifications.empty");
+    }
+    tooltip += "\n" + i18n::tr("bar.widgets.notifications.actions");
+    m_area->setTooltip(std::move(tooltip));
+  }
   if (m_glyph != nullptr) {
     m_glyph->setGlyph(m_dndEnabled ? "bell-off" : "bell");
     m_glyph->setColor(widgetIconColorOr(colorSpecFromRole(ColorRole::OnSurface)));
@@ -271,7 +287,7 @@ void NotificationWidget::syncRecentAppIcons(Renderer& renderer) {
   const auto apps = m_manager->recentNotificationApps(m_options.maxAppIcons + 1);
   m_appsTruncated = apps.size() > m_options.maxAppIcons;
   m_visibleAppCount = std::min(apps.size(), m_options.maxAppIcons);
-  const int targetSize = std::max(1, static_cast<int>(std::lround(kRecentAppIconSize * m_contentScale)));
+  const int targetSize = std::max(1, static_cast<int>(std::lround(m_options.appIconSize * m_contentScale)));
 
   for (std::size_t i = 0; i < m_appIcons.size(); ++i) {
     const bool visible = i < m_visibleAppCount;

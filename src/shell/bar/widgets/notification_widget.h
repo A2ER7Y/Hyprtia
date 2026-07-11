@@ -28,6 +28,8 @@ public:
     NotificationWidgetDisplayMode displayMode = NotificationWidgetDisplayMode::Bell;
     std::size_t maxAppIcons = 10;
     bool showEllipsis = true;
+    float appIconSize = 18.0f;
+    float iconSpacing = 4.0f;
   };
 
   NotificationWidget(NotificationManager* manager, wl_output* output, Options options);

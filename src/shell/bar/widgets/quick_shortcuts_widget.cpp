@@ -19,6 +19,7 @@ QuickShortcutsWidget::QuickShortcutsWidget(
 void QuickShortcutsWidget::create() {
   auto area = std::make_unique<InputArea>();
   InputArea* areaPtr = area.get();
+  area->setAcceptedButtons(InputArea::buttonMask(BTN_LEFT));
   area->setOnClick([this, areaPtr](const InputArea::PointerData& data) {
     if (data.button != BTN_LEFT) {
       return;
@@ -38,7 +39,7 @@ void QuickShortcutsWidget::create() {
     } else if (m_barPosition == "right") {
       anchorX -= areaPtr->width() * 0.5f + Style::spaceXs * m_contentScale;
     }
-    requestPanelToggle("quick-shortcuts", {}, anchorX, anchorY);
+    requestPanelToggle("quick-shortcuts", configName(), anchorX, anchorY);
   });
 
   if (m_customImage.enabled()) {

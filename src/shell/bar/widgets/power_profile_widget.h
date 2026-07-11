@@ -11,7 +11,18 @@ class PowerProfilesService;
 
 class PowerProfileWidget : public Widget {
 public:
-  explicit PowerProfileWidget(PowerProfilesService* powerProfiles, bool showState = false);
+  enum class StateDisplay {
+    PerformanceStatus,
+    ProfileName,
+  };
+
+  struct Options {
+    bool showState = false;
+    StateDisplay stateDisplay = StateDisplay::PerformanceStatus;
+    bool hideWhenUnavailable = false;
+  };
+
+  explicit PowerProfileWidget(PowerProfilesService* powerProfiles, Options options = {});
 
   void create() override;
 
@@ -26,7 +37,8 @@ private:
   Glyph* m_glyph = nullptr;
   Label* m_stateLabel = nullptr;
   std::string m_lastProfile;
-  bool m_showState = false;
+  Options m_options;
+  bool m_haveState = false;
   bool m_available = false;
   bool m_performanceActive = false;
 };
