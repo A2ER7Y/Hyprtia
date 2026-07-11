@@ -3,7 +3,7 @@
 
 pkgname=hyprtia
 pkgver=5.0.0_beta2.stratos1
-pkgrel=4
+pkgrel=5
 pkgdesc='Noctalia v5 Wayland shell adapted for StratOS'
 arch=('x86_64')
 url='https://github.com/A2ER7Y/Hyprtia'
@@ -37,6 +37,7 @@ optdepends=(
   'scrcpy: Android screen mirroring with the legacy AndroidConnect extension'
   'android-tools: ADB support for the legacy AndroidConnect extension'
   'hyprtia-assistant: compact NyarchAssistant companion and offline Ollama support'
+  'desktopify-lite: create pinnable web-app launchers from dotfiles'
   'python: built-in KDE color-scheme template'
   'python-jeepney: KDE color-scheme reload over D-Bus'
 )

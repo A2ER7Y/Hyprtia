@@ -629,6 +629,8 @@ _noctalia_sources = files(
   'src/shell/session/session_action_runner.cpp',
   'src/shell/session/session_ipc.cpp',
   'src/shell/session/session_panel.cpp',
+  'src/shell/shortcuts/quick_shortcut_entry.cpp',
+  'src/shell/shortcuts/quick_shortcuts_panel.cpp',
   'src/shell/setup_wizard/setup_wizard_panel.cpp',
   'src/shell/surface/shadow.cpp',
   'src/system/telemetry_service.cpp',
@@ -691,6 +693,7 @@ _noctalia_sources = files(
   'src/shell/bar/widgets/plugin_widget.cpp',
   'src/shell/bar/widgets/power_profile_widget.cpp',
   'src/shell/bar/widgets/privacy_widget.cpp',
+  'src/shell/bar/widgets/quick_shortcuts_widget.cpp',
   'src/shell/bar/widgets/session_widget.cpp',
   'src/shell/bar/widgets/settings_widget.cpp',
   'src/shell/bar/widgets/spacer_widget.cpp',
@@ -1561,6 +1564,16 @@ dock_pinned_apps_test = executable('dock_pinned_apps_test',
 )
 
 test('dock_pinned_apps', dock_pinned_apps_test)
+
+quick_shortcut_entry_test = executable('quick_shortcut_entry_test',
+  sources: files(
+    'tests/quick_shortcut_entry_test.cpp',
+    'src/shell/shortcuts/quick_shortcut_entry.cpp',
+  ),
+  include_directories: _noctalia_inc,
+)
+
+test('quick_shortcut_entry', quick_shortcut_entry_test)
 
 wayland_toplevels_identity_test = executable('wayland_toplevels_identity_test',
   sources: files(

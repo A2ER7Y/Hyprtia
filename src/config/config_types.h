@@ -228,6 +228,16 @@ struct ShellSessionConfig {
   bool operator==(const ShellSessionConfig&) const = default;
 };
 
+struct ShellQuickShortcutsConfig {
+  // Free-form user commands. Entries may use "Label :: command" and the
+  // optional "terminal:" command prefix.
+  std::vector<std::string> commands;
+  // Desktop entry ids resolved with the same matching rules as dock pins.
+  std::vector<std::string> pinned;
+
+  bool operator==(const ShellQuickShortcutsConfig&) const = default;
+};
+
 struct ShellGreeterSyncConfig {
   // Shell prefix that replaces the default pkexec/run0 escalator before the apply helper
   // path and staging directory. Empty = pkexec or run0. Example: "ghostty -e pkexec"
@@ -979,6 +989,7 @@ struct ShellConfig {
   ScreenshotConfig screenshot;
   PrivacyConfig privacy;
   ShellSessionConfig session;
+  ShellQuickShortcutsConfig shortcuts;
   ShellGreeterSyncConfig greeterSync;
 
   bool operator==(const ShellConfig&) const = default;

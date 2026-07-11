@@ -421,6 +421,11 @@ location = "https://example.invalid/bad"
     c.shell.session.power.suspend = "zzz";
     c.shell.session.power.reboot = "sudo -n reboot";
     c.shell.session.power.shutdown = "sudo -n poweroff";
+    c.shell.shortcuts.commands = {
+        "Terminal :: terminal: foot",
+        "Install :: sh \"$HOME/dotfiles/install.sh\"",
+    };
+    c.shell.shortcuts.pinned = {"firefox.desktop", "Notion.desktop"};
     c.theme.source = PaletteSource::Wallpaper;
     c.theme.builtinPalette = "Tokyo";
     c.theme.mode = ThemeMode::Light;

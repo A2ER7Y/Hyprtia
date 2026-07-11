@@ -49,6 +49,16 @@ app_grid = false
 sort_by_usage = true
 width_fraction = 0.333333
 
+[shell.shortcuts]
+commands = [
+  "Terminal :: terminal: ${SHELL:-sh}",
+  "Desktopify Lite :: terminal: desktopify-lite",
+]
+pinned = []
+# Other examples editable in Settings > Launcher:
+# "Install dotfiles :: terminal: sh \"$HOME/dotfiles/install.sh\""
+# "Custom script :: sh \"$HOME/.local/bin/my-script\""
+
 # ActivSpot-inspired top bar implemented with native Hyprtia widgets so every
 # lane, capsule and widget remains editable in Settings > Bar.
 [bar.activspot]
@@ -71,12 +81,11 @@ capsule_radius = 14
 capsule_opacity = 0.88
 
 start = ["caelestia_launcher", "workspaces"]
-center = ["clock", "media"]
+center = ["assistant", "clock", "media", "shortcuts"]
 end = [
   "tray",
   "compact_notifications",
   "android_connect",
-  "assistant",
   "updates",
   "performance_mode",
   "network",
@@ -109,6 +118,11 @@ type = "custom_button"
 glyph = "message-chatbot"
 tooltip = "Hyprtia Assistant"
 command = "hyprtia-assistant"
+
+[widget.shortcuts]
+type = "shortcuts"
+glyph = "bookmark"
+columns = 4
 
 [widget.updates]
 type = "updates"

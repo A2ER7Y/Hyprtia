@@ -12,6 +12,7 @@
 #include "shell/settings/color_spec_picker.h"
 #include "shell/settings/font_weight_catalog.h"
 #include "shell/wallpaper/wallpaper_paths.h"
+#include "system/desktop_entry.h"
 #include "system/sysmon_threshold_profile.h"
 #include "theme/builtin_palettes.h"
 #include "theme/builtin_templates.h"
@@ -1099,6 +1100,34 @@ namespace settings {
         ToggleSetting{cfg.shell.launcher.sessionSearch},
         "launcher session search power menu lock suspend reboot shutdown logout"
     ));
+    entries.push_back(makeEntry(
+        SettingsSection::Launcher, "quick-shortcuts", tr("settings.schema.launcher.shortcut-commands.label"),
+        tr("settings.schema.launcher.shortcut-commands.description"), {"shell", "shortcuts", "commands"},
+        ListSetting{.items = cfg.shell.shortcuts.commands}, "custom command script terminal install shell quick launch"
+    ));
+    {
+      ListSetting pinned{.items = cfg.shell.shortcuts.pinned};
+      for (const auto& desktopEntry : desktopEntries()) {
+        if (desktopEntry.hidden || desktopEntry.noDisplay || desktopEntry.id.empty()) {
+          continue;
+        }
+        pinned.suggestedOptions.push_back(
+            SelectOption{
+                .value = desktopEntry.id,
+                .label = desktopEntry.name.empty() ? desktopEntry.id : desktopEntry.name,
+                .description = desktopEntry.comment,
+            }
+        );
+      }
+      std::ranges::sort(pinned.suggestedOptions, {}, [](const SelectOption& option) {
+        return StringUtils::toLower(option.label);
+      });
+      entries.push_back(makeEntry(
+          SettingsSection::Launcher, "quick-shortcuts", tr("settings.schema.launcher.shortcut-pinned.label"),
+          tr("settings.schema.launcher.shortcut-pinned.description"), {"shell", "shortcuts", "pinned"},
+          std::move(pinned), "pinned apps desktopify web app favorites quick launch"
+      ));
+    }
     entries.push_back(makeEntry(
         SettingsSection::Panels, "clipboard", tr("settings.schema.panels.placement-clipboard.label"),
         tr("settings.schema.panels.placement-clipboard.description"), {"shell", "panel", "clipboard_placement"},

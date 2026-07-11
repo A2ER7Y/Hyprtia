@@ -31,6 +31,7 @@
 #include "shell/bar/widgets/plugin_widget.h"
 #include "shell/bar/widgets/power_profile_widget.h"
 #include "shell/bar/widgets/privacy_widget.h"
+#include "shell/bar/widgets/quick_shortcuts_widget.h"
 #include "shell/bar/widgets/screenshot_widget.h"
 #include "shell/bar/widgets/session_widget.h"
 #include "shell/bar/widgets/settings_widget.h"
@@ -436,6 +437,16 @@ std::unique_ptr<Widget> WidgetFactory::create(
         },
         barName, outputName
     );
+    widget->setContentScale(contentScale);
+    return widget;
+  }
+
+  if (type == "shortcuts") {
+    auto barGlyph = wc != nullptr ? wc->getString("glyph", "bookmark") : std::string{"bookmark"};
+    if (barGlyph.empty()) {
+      barGlyph = "bookmark";
+    }
+    auto widget = std::make_unique<QuickShortcutsWidget>(output, std::move(barGlyph), barPosition, customImageFor(wc));
     widget->setContentScale(contentScale);
     return widget;
   }

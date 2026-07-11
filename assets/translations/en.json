@@ -636,6 +636,9 @@
     },
     "search-placeholder": "Search applications..."
   },
+  "shortcuts": {
+    "empty": "Add commands or pinned applications in Settings → Launcher."
+  },
   "location": {
     "errors": {
       "address-lookup-failed": "Address lookup failed",
@@ -1105,6 +1108,7 @@
         "power": "Power",
         "privacy": "Privacy",
         "profile": "Profile",
+        "quick-shortcuts": "Quick Shortcuts",
         "screen-corners": "Screen Corners",
         "screen-time": "Screen Time",
         "screenshot": "Screenshot",
@@ -2055,6 +2059,16 @@
           "label": "Background Opacity"
         }
       },
+      "launcher": {
+        "shortcut-commands": {
+          "description": "Custom launch entries. Use “Label :: command” or “Label :: terminal: command”.",
+          "label": "Custom Shortcuts"
+        },
+        "shortcut-pinned": {
+          "description": "Applications and Desktopify Lite web launchers shown in the shortcuts panel",
+          "label": "Pinned Applications"
+        }
+      },
       "panels": {
         "borders": {
           "description": "Draw an outline on panels and section cards inside panels",
@@ -2944,6 +2958,10 @@
           "description": "Command run when cycling keyboard layouts",
           "label": "Cycle Command"
         },
+        "columns": {
+          "description": "Number of quick-launch buttons per row",
+          "label": "Shortcut Columns"
+        },
         "detached-panel": {
           "description": "Open the drawer as a floating panel with its own background instead of merging with the bar",
           "label": "Detached Panel"
@@ -3371,6 +3389,7 @@
         "screenshot": "Screenshot",
         "scripted": "Scripted",
         "session": "Session",
+        "shortcuts": "Quick Shortcuts",
         "settings": "Settings",
         "spacer": "Spacer",
         "sysmon": "System Monitor",

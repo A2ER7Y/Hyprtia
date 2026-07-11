@@ -3,3 +3,12 @@ type = "clock"
 format = "{:%H:%M}"
 font_family = "Noto Sans"
 font_weight = 700
+
+[widget.shortcuts]
+type = "shortcuts"
+glyph = "bookmark"
+columns = 4
+
+[shell.shortcuts]
+commands = ["Test :: notify-send test"]
+pinned = ["org.example.Test.desktop"]

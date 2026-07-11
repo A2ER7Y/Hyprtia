@@ -1361,6 +1361,14 @@ namespace noctalia::config::schema {
       };
       return s;
     }
+
+    const Schema<ShellQuickShortcutsConfig>& shellQuickShortcutsSchema() {
+      static const Schema<ShellQuickShortcutsConfig> s = {
+          field(&ShellQuickShortcutsConfig::commands, "commands"),
+          field(&ShellQuickShortcutsConfig::pinned, "pinned"),
+      };
+      return s;
+    }
   } // namespace
 
   const Schema<ShellConfig>& shellSchema() {
@@ -1417,6 +1425,7 @@ namespace noctalia::config::schema {
         subTable(&ShellConfig::screenshot, "screenshot", shellScreenshotSchema()),
         subTable(&ShellConfig::privacy, "privacy", shellPrivacySchema()),
         subTable(&ShellConfig::session, "session", shellSessionSchema()),
+        subTable(&ShellConfig::shortcuts, "shortcuts", shellQuickShortcutsSchema()),
         subTable(&ShellConfig::greeterSync, "greeter_sync", shellGreeterSyncSchema()),
     };
     return s;

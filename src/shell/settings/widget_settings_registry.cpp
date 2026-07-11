@@ -74,6 +74,7 @@ namespace settings {
         {.type = "notifications", .labelKey = "settings.widgets.types.notifications", .glyph = "bell"},
         {.type = "power_profile", .labelKey = "settings.widgets.types.power-profile", .glyph = "balanced"},
         {.type = "privacy", .labelKey = "settings.widgets.types.privacy", .glyph = "shield-lock"},
+        {.type = "shortcuts", .labelKey = "settings.widgets.types.shortcuts", .glyph = "bookmark"},
         {.type = "screenshot", .labelKey = "settings.widgets.types.screenshot", .glyph = "screenshot"},
         {.type = "session", .labelKey = "settings.widgets.types.session", .glyph = "shutdown"},
         {.type = "settings", .labelKey = "settings.widgets.types.settings", .glyph = "settings"},
@@ -132,6 +133,9 @@ namespace settings {
       }
       if (type == "session") {
         return nonEmptyGlyph(config->getString("glyph", "shutdown"), "shutdown");
+      }
+      if (type == "shortcuts") {
+        return nonEmptyGlyph(config->getString("glyph", "bookmark"), "bookmark");
       }
       if (type == "settings") {
         return nonEmptyGlyph(config->getString("glyph", "settings"), "search");
@@ -860,6 +864,11 @@ namespace settings {
       add(glyphSpec("glyph", "shutdown"));
       add(stringSpec("custom_image", ""));
       add(boolSpec("custom_image_colorize", false));
+    } else if (type == "shortcuts") {
+      add(glyphSpec("glyph", "bookmark"));
+      add(stringSpec("custom_image", ""));
+      add(boolSpec("custom_image_colorize", false));
+      add(intSpec("columns", 4, 1.0, 6.0, 1.0));
     } else if (type == "settings") {
       add(glyphSpec("glyph", "settings"));
       add(stringSpec("custom_image", ""));
