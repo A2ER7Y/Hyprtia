@@ -109,6 +109,21 @@ Pinned entries use the same XDG desktop-entry discovery as the launcher and dock
 `~/.local/share/applications`. Install it in the preferred stratum, generate a launcher, then select it in
 **Pinned Applications**.
 
+`bat` and `eza` are supported terminal companions. Install them in the Fedora application stratum with
+`strat -r fedora sudo dnf install bat eza`, then add `hyprtia-strat apps bat` or
+`hyprtia-strat apps eza --icons --group-directories-first` in **Settings → Launcher → Custom Shortcuts**. They are also
+listed as optional KiroLinux package dependencies for users who prefer their CLI tools in the system stratum.
+
+### Modular widgets
+
+Every bar entry is an independent widget instance. Its Settings card exposes an eye toggle, **Small** icon mode,
+**Medium** full-interface mode, and a **+** button for detailed options. Disabled widgets are rejected before the native
+factory runs, so they do not construct objects, retain samplers, subscribe to services, or start plugin runtimes.
+
+Native widget machine code remains part of the single Hyprtia executable; removing those mapped instructions would
+require separate shared-library plugins. The disable path eliminates runtime work and allocations, which is the relevant
+performance cost during a session.
+
 ### Hyprland plugin and French keyboard
 
 In a current Hyprland session, the `hyprtia` launcher installs `hyprtia-stratos.lua` and adds
@@ -125,6 +140,19 @@ matching Hyprland headers.
 The plugin follows Hyprland's latest stable release and may need rebuilding after a Hyprland update. Run
 `hyprtia-hyprland-setup --force` to repair or re-enable it, or `hyprtia-hyprland-setup --config-only` to install only the
 keyboard and config snippets. Set `HYPRTIA_HYPRLAND_SETUP=0` before launching Hyprtia to disable automatic setup.
+
+### Safe Mode
+
+Hyprtia writes a startup guard before shell initialization and clears it only after all startup phases complete. If the
+next launch finds an uncleared guard, it snapshots the previous log and starts an isolated, frozen recovery profile with
+plugins, wallpaper, templates, telemetry, sounds, and online services disabled. The recovery layout is a native Hyprtia
+profile inspired by [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland); end-4's GPL QML/Quickshell
+configuration is not loaded directly because it is incompatible with Noctalia v5's native runtime.
+
+Safe Mode shows a warning notification with the captured log path. Press `Super+B` to generate a redacted report and copy
+it with `wl-copy`; paste it manually into Reddit, Discord, or GitHub. Run `hyprtia-debug-report --open-github` to also open
+the issue form, or `hyprtia --safe-mode-reset` after repairing the normal configuration. The frozen recovery TOML is
+copied only once and is never overwritten automatically.
 
 The StratOS profile uses the same session transitions as
 [Brain_Shell](https://github.com/Brainitech/Brain_Shell): `hyprshutdown` gracefully closes applications for logout,

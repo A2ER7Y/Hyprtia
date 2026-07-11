@@ -3,7 +3,7 @@
 
 pkgname=hyprtia
 pkgver=5.0.0_beta2.stratos1
-pkgrel=8
+pkgrel=9
 pkgdesc='Noctalia v5 Wayland shell for Bedrock StratOS'
 arch=('x86_64')
 url='https://github.com/A2ER7Y/Hyprtia'
@@ -38,6 +38,8 @@ optdepends=(
   'android-tools: ADB support for the legacy AndroidConnect extension'
   'hyprtia-assistant: compact NyarchAssistant companion and offline Ollama support'
   'desktopify-lite: create pinnable web-app launchers from dotfiles'
+  'bat: syntax-highlighted file viewer for terminal shortcuts'
+  'eza: modern file listing for terminal shortcuts'
   'hyprland>=0.55: Lua configuration, confined-floats plugin, and French keyboard integration'
   'cmake: build confined-floats through hyprpm'
   'python: built-in KDE color-scheme template'
