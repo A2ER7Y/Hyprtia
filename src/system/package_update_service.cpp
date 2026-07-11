@@ -213,7 +213,7 @@ PackageUpdateSnapshot PackageUpdateService::checkAll() const {
   };
   auto available = [&](const std::string& stratum, const std::string& command) {
     if (!useBedrock) {
-      return process::commandExists(command);
+      return process::commandExists(command.c_str());
     }
     const auto check = run({"strat", "-r", stratum, "sh", "-c", "command -v \"$1\" >/dev/null 2>&1", "sh", command});
     return !check.timedOut && check.exitCode == 0;
