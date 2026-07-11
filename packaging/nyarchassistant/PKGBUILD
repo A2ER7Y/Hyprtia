@@ -33,6 +33,7 @@ depends=(
   'python-pydub'
   'python-pylatexenc'
   'python-requests'
+  'python-requests-toolbelt'
   'python-tiktoken'
   'vte4'
   'webkitgtk-6.0'

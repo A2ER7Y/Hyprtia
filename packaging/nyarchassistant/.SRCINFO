@@ -32,6 +32,7 @@ pkgbase = hyprtia-assistant
 	depends = python-pydub
 	depends = python-pylatexenc
 	depends = python-requests
+	depends = python-requests-toolbelt
 	depends = python-tiktoken
 	depends = vte4
 	depends = webkitgtk-6.0
