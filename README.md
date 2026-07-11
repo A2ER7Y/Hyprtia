@@ -56,6 +56,24 @@ the native v5 runtime. `hyprtia-android-connect` opens that extension through it
 is already running; otherwise it opens KDE Connect. Install `kdeconnect` for the native fallback. The extension's optional
 mirroring stack additionally needs `scrcpy`, `android-tools`, Qt Multimedia, and `v4l2loopback`.
 
+### Compact AI assistant
+
+The message-bot button launches the separately packaged
+[NyarchAssistant](https://github.com/NyarchLinux/NyarchAssistant) companion. Build it with
+`cd packaging/nyarchassistant && makepkg -si`. Keeping it separate prevents its GTK, WebKit, MCP, and local-model
+dependencies from increasing the shell's memory footprint when the assistant is not used.
+
+The StratOS patch defaults to a 420×720 phone-style window with a narrow waifu panel, collapsed history/canvas panels,
+smaller lazy-loaded chat batches, and deterministic avatar cleanup. It adds Kimi K2.6 with an optional bounded swarm
+orchestration mode, native Ollama recommendations, permission-gated file move/delete tools, read-only GitHub/GitLab/Gitea
+tools, and automatic TTS voice selection for English, French, Spanish, German, and Italian. Existing NyarchAssistant
+features provide the local Ollama/Llama.cpp runtime, model downloads, MCP, terminal, explorer, and editor.
+
+Llama 4 Scout and Maverick appear in the model library, but they are marked as workstation/server-class downloads.
+For normal PCs, start with one of the recommended 3B–7B models. Remote Git tokens are accepted only through environment
+variables and are sent only to the matching trusted forge origin; AI file deletion remains confirmation-gated and never
+removes directories.
+
 The StratOS profile uses the same session transitions as
 [Brain_Shell](https://github.com/Brainitech/Brain_Shell): `hyprshutdown` gracefully closes applications for logout,
 restart, and shutdown, while `hyprlock` provides the fade-in/fade-out lock and unlock screen. The package installs an
@@ -72,6 +90,7 @@ bind = SUPER, SPACE, exec, hyprtia msg panel-toggle launcher
 bind = SUPER, N, exec, hyprtia msg panel-toggle control-center
 bind = SUPER, V, exec, hyprtia msg panel-toggle clipboard
 bind = SUPER, X, exec, hyprtia msg panel-toggle session
+bind = SUPER, A, exec, hyprtia-assistant
 bindl = , XF86AudioRaiseVolume, exec, hyprtia msg volume-up
 bindl = , XF86AudioLowerVolume, exec, hyprtia msg volume-down
 bindl = , XF86AudioMute, exec, hyprtia msg volume-mute
@@ -364,6 +383,11 @@ The StratOS top-bar presentation is inspired by
 [ActivSpot](https://github.com/Devvvmn/ActivSpot) (GPLv3), and the Android compatibility launcher targets
 [AndroidConnect](https://github.com/demencia89/noctalia-shell-androidconnect-plugin) (GPLv2). Hyprtia does not copy or
 embed either project's QML sources.
+
+The optional `hyprtia-assistant` package applies a GPLv3 StratOS patch to
+[NyarchAssistant](https://github.com/NyarchLinux/NyarchAssistant). Its architecture also credits
+[Orbitos Island](https://github.com/jomvick/Orbitos-island) as a local-first agent-monitoring reference; no Orbitos source
+or assets are embedded.
 
 ## Donations
 

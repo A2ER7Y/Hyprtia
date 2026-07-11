@@ -973,6 +973,12 @@ install_data(
 )
 
 install_data(
+  'packaging/stratos/hyprtia-assistant',
+  install_dir: get_option('bindir'),
+  install_mode: 'rwxr-xr-x',
+)
+
+install_data(
   'packaging/stratos/config.toml',
   install_dir: get_option('datadir') / 'hyprtia',
 )
@@ -1593,6 +1599,16 @@ test(
   args: [
     'tests/stratos_android_connect_test.sh',
     meson.current_source_dir() / 'packaging/stratos/hyprtia-android-connect',
+  ],
+  workdir: meson.current_source_dir(),
+)
+
+test(
+  'stratos_assistant',
+  sh_program,
+  args: [
+    'tests/stratos_assistant_test.sh',
+    meson.current_source_dir() / 'packaging/stratos/hyprtia-assistant',
   ],
   workdir: meson.current_source_dir(),
 )

@@ -76,6 +76,7 @@ end = [
   "tray",
   "compact_notifications",
   "android_connect",
+  "assistant",
   "updates",
   "performance_mode",
   "network",
@@ -102,6 +103,12 @@ type = "custom_button"
 glyph = "device-mobile"
 tooltip = "Android Connect"
 command = "hyprtia-android-connect"
+
+[widget.assistant]
+type = "custom_button"
+glyph = "message-chatbot"
+tooltip = "Hyprtia Assistant"
+command = "hyprtia-assistant"
 
 [widget.updates]
 type = "updates"

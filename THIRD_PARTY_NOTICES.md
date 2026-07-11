@@ -38,3 +38,22 @@ commit `6f8172b6135b97cb5a878311ae3723fe4e5aa324`:
 <https://github.com/demencia89/noctalia-shell-androidconnect-plugin> (GPL-2.0).
 
 No source code or assets from either project are distributed in Hyprtia.
+
+## NyarchAssistant companion
+
+The optional `hyprtia-assistant` package builds NyarchAssistant at commit
+`bd632c7148d54f7d7cb8a9290862c99e9f66e61e` and applies the separately
+distributed StratOS patch in `packaging/nyarchassistant/stratos-minimal.patch`:
+<https://github.com/NyarchLinux/NyarchAssistant>.
+
+NyarchAssistant and the derivative patch are licensed under GPL-3.0-only. The
+complete license text is included at `packaging/nyarchassistant/COPYING` and is
+installed with the companion package. Hyprtia's MIT-licensed native shell and
+the GPL companion remain separate programs and packages.
+
+Orbitos Island at commit `3fde09b5438b4bf91208f942b0b7c9fe0ac60669`
+is an architectural reference for local-first agent observability and bounded
+background work:
+<https://github.com/jomvick/Orbitos-island> (MIT).
+
+No Orbitos source code or assets are distributed in Hyprtia.
