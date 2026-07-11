@@ -61,7 +61,8 @@ sha256sums=(
 )
 
 prepare() {
-  git -C "$srcdir/NyarchAssistant" apply "$srcdir/stratos-minimal.patch"
+  git -C "$srcdir/NyarchAssistant" apply --whitespace=nowarn \
+    "$srcdir/stratos-minimal.patch"
 }
 
 build() {
