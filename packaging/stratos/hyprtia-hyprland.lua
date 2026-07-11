@@ -7,12 +7,13 @@ hl.config({
         kb_layout = "fr",
     },
     ["exec-once"] = {
-        "hyprpm reload",
+        "sh -c 'hyprpm reload && hyprctl reload'",
     },
 })
 
 if hl.plugin.confined_floats ~= nil then
     hl.window_rule({
+        name = "hyprtia-confined-floats",
         match = { class = ".*" },
         ["confined-floats:confine"] = true,
     })

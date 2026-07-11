@@ -46,7 +46,10 @@ export PATH="$test_root/stubs:/usr/bin:/bin"
 
 cmp "$conf_resource" "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.conf"
 grep -q 'kb_layout = fr' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.conf"
+grep -q '^windowrule {$' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.conf"
 grep -q 'confined-floats:confine' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.conf"
+grep -q 'hyprpm reload && hyprctl reload' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.conf"
+! grep -q 'windowrulev2' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.conf"
 grep -q 'source = .*hyprtia-stratos.conf' "$XDG_CONFIG_HOME/hypr/hyprland.conf"
 test -f "$XDG_STATE_HOME/hyprtia/confined-floats.enabled"
 printf '%s\n' \
