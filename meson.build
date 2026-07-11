@@ -983,6 +983,7 @@ install_data(
 
 install_data(
   'packaging/stratos/hyprtia-hyprland-setup',
+  'packaging/stratos/hyprtia-hyprland-session',
   install_dir: get_option('bindir'),
   install_mode: 'rwxr-xr-x',
 )
@@ -993,6 +994,7 @@ install_data(
 )
 
 install_data(
+  'packaging/stratos/hyprtia-confined-floats.conf',
   'packaging/stratos/hyprtia-hyprland.conf',
   'packaging/stratos/hyprtia-hyprland.lua',
   install_dir: get_option('datadir') / 'hyprtia',
@@ -1644,8 +1646,10 @@ test(
   args: [
     'tests/stratos_hyprland_setup_test.sh',
     meson.current_source_dir() / 'packaging/stratos/hyprtia-hyprland-setup',
+    meson.current_source_dir() / 'packaging/stratos/hyprtia-hyprland-session',
     meson.current_source_dir() / 'packaging/stratos/hyprtia-hyprland.conf',
     meson.current_source_dir() / 'packaging/stratos/hyprtia-hyprland.lua',
+    meson.current_source_dir() / 'packaging/stratos/hyprtia-confined-floats.conf',
   ],
   workdir: meson.current_source_dir(),
 )

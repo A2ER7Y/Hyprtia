@@ -95,7 +95,16 @@ install_lua() {
 }
 
 mkdir -p "$config_dir" "$state_dir"
-case "$(detect_mode)" in
+rule_template=$share_dir/hyprtia-confined-floats.conf
+rule_file=$config_dir/hyprtia-confined-floats.conf
+if [ ! -f "$rule_template" ]; then
+  printf 'hyprtia-hyprland-setup: missing resource: %s\n' "$rule_template" >&2
+  exit 1
+fi
+install -Dm644 "$rule_template" "$rule_file"
+
+selected_mode=$(detect_mode)
+case "$selected_mode" in
   lua) install_lua ;;
   conf) install_conf ;;
 esac
@@ -124,10 +133,19 @@ esac
 hyprpm enable "$plugin_name"
 touch "$plugin_marker"
 
-# A future session also reloads enabled plugins through the managed snippet.
-hyprpm reload >/dev/null 2>&1 || true
-if command -v hyprctl >/dev/null 2>&1; then
-  hyprctl reload >/dev/null 2>&1 || true
+# A future session also applies the rule through the managed autostart.
+session_loader=$binary_dir/hyprtia-hyprland-session
+if [ -x "$session_loader" ]; then
+  "$session_loader" >/dev/null 2>&1 || true
+else
+  hyprpm reload >/dev/null 2>&1 || true
+  if command -v hyprctl >/dev/null 2>&1; then
+    if [ "$selected_mode" = lua ]; then
+      hyprctl reload >/dev/null 2>&1 || true
+    else
+      hyprctl keyword source "$rule_file" >/dev/null 2>&1 || true
+    fi
+  fi
 fi
 
 printf 'Hyprtia: enabled %s and configured the French keyboard layout.\n' "$plugin_name"

@@ -3,14 +3,18 @@
 set -eu
 
 setup_script=$1
-conf_resource=$2
-lua_resource=$3
+session_script=$2
+conf_resource=$3
+lua_resource=$4
+rule_resource=$5
 test_root=$(mktemp -d)
 trap 'rm -rf "$test_root"' EXIT HUP INT TERM
 
 install -Dm755 "$setup_script" "$test_root/prefix/bin/hyprtia-hyprland-setup"
+install -Dm755 "$session_script" "$test_root/prefix/bin/hyprtia-hyprland-session"
 install -Dm644 "$conf_resource" "$test_root/prefix/share/hyprtia/hyprtia-hyprland.conf"
 install -Dm644 "$lua_resource" "$test_root/prefix/share/hyprtia/hyprtia-hyprland.lua"
+install -Dm644 "$rule_resource" "$test_root/prefix/share/hyprtia/hyprtia-confined-floats.conf"
 mkdir -p "$test_root/stubs"
 
 cat >"$test_root/stubs/hyprpm" <<'EOF'
@@ -45,12 +49,14 @@ export PATH="$test_root/stubs:/usr/bin:/bin"
 "$test_root/prefix/bin/hyprtia-hyprland-setup" --auto
 
 cmp "$conf_resource" "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.conf"
+cmp "$rule_resource" "$XDG_CONFIG_HOME/hypr/hyprtia-confined-floats.conf"
 grep -q 'kb_layout = fr' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.conf"
-grep -q '^windowrule {$' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.conf"
-grep -q 'confined-floats:confine' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.conf"
-grep -q 'hyprpm reload && hyprctl reload' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.conf"
-! grep -q 'windowrulev2' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.conf"
+grep -q 'exec-once = hyprtia-hyprland-session' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.conf"
+grep -q '^windowrule {$' "$XDG_CONFIG_HOME/hypr/hyprtia-confined-floats.conf"
+grep -q 'confined-floats:confine' "$XDG_CONFIG_HOME/hypr/hyprtia-confined-floats.conf"
+! grep -q 'windowrulev2' "$XDG_CONFIG_HOME/hypr/hyprtia-confined-floats.conf"
 grep -q 'source = .*hyprtia-stratos.conf' "$XDG_CONFIG_HOME/hypr/hyprland.conf"
+grep -q "keyword source $XDG_CONFIG_HOME/hypr/hyprtia-confined-floats.conf" "$HYPRTIA_HYPRCTL_TEST_LOG"
 test -f "$XDG_STATE_HOME/hyprtia/confined-floats.enabled"
 printf '%s\n' \
   list \

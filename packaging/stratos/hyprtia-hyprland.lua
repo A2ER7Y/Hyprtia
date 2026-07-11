@@ -7,7 +7,7 @@ hl.config({
         kb_layout = "fr",
     },
     ["exec-once"] = {
-        "sh -c 'hyprpm reload && hyprctl reload'",
+        "hyprtia-hyprland-session",
     },
 })
 
