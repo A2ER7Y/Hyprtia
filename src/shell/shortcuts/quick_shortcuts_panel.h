@@ -40,6 +40,7 @@ private:
 
   void doLayout(Renderer& renderer, float width, float height) override;
   [[nodiscard]] std::vector<Entry> effectiveEntries() const;
+  [[nodiscard]] std::size_t entryCountForLayout() const;
   [[nodiscard]] std::size_t columns() const;
   [[nodiscard]] std::size_t rows() const;
   [[nodiscard]] Button* createEntryButton(const Entry& entry, std::size_t index, float scale);

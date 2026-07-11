@@ -62,6 +62,10 @@ std::vector<QuickShortcutsPanel::Entry> QuickShortcutsPanel::effectiveEntries() 
   return entries;
 }
 
+std::size_t QuickShortcutsPanel::entryCountForLayout() const {
+  return m_entries.empty() ? effectiveEntries().size() : m_entries.size();
+}
+
 std::size_t QuickShortcutsPanel::columns() const {
   std::size_t configured = 4;
   if (m_config != nullptr) {
@@ -70,11 +74,11 @@ std::size_t QuickShortcutsPanel::columns() const {
       configured = static_cast<std::size_t>(std::clamp<std::int64_t>(it->second.getInt("columns", 4), 1, 6));
     }
   }
-  return std::min(configured, std::max<std::size_t>(1, m_entries.size()));
+  return std::min(configured, std::max<std::size_t>(1, entryCountForLayout()));
 }
 
 std::size_t QuickShortcutsPanel::rows() const {
-  const std::size_t count = std::max<std::size_t>(1, m_entries.size());
+  const std::size_t count = std::max<std::size_t>(1, entryCountForLayout());
   const std::size_t columnCount = columns();
   return (count + columnCount - 1) / columnCount;
 }
