@@ -28,8 +28,8 @@ redact_stream() {
     BEGIN { IGNORECASE = 1 }
     {
       line = $0
-      if (line ~ /(api[-_]?key|authorization|cookie|password|passwd|secret|token)[[:space:]]*[=:]/
-          || line ~ /bearer[[:space:]]+[A-Za-z0-9._~+\/-]+/) {
+      if (line ~ /(api[-_]?key|authorization|cookie|password|passwd|secret|token)[[:space:]]*[=:]/ ||
+          line ~ /bearer[[:space:]]+[A-Za-z0-9._~+\/-]+/) {
         print "[REDACTED SECRET LINE]"
         next
       }
