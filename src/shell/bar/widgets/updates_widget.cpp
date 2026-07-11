@@ -70,8 +70,9 @@ void UpdatesWidget::doLayout(Renderer& renderer, float containerWidth, float con
   m_glyph->setColor(widgetIconColorOr(accent));
   m_glyph->measure(renderer);
   m_label->setFontSize(Style::fontSizeCaption * m_contentScale);
-  m_label->setColor(widgetForegroundOr(hasUpdates ? colorSpecFromRole(ColorRole::Primary)
-                                                 : colorSpecFromRole(ColorRole::OnSurface)));
+  m_label->setColor(
+      widgetForegroundOr(hasUpdates ? colorSpecFromRole(ColorRole::Primary) : colorSpecFromRole(ColorRole::OnSurface))
+  );
   m_label->measure(renderer);
 
   const bool vertical = containerHeight > containerWidth;

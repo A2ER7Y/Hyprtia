@@ -64,8 +64,9 @@ void PowerProfileWidget::doLayout(Renderer& renderer, float containerWidth, floa
   m_glyph->setGlyphSize(Style::baseGlyphSize * m_contentScale);
   const ColorSpec activeColor = colorSpecFromRole(ColorRole::Primary);
   const ColorSpec inactiveColor = widgetIconColorOr(colorSpecFromRole(ColorRole::OnSurfaceVariant));
-  m_glyph->setColor(m_available ? (m_performanceActive ? activeColor : inactiveColor)
-                                : colorSpecFromRole(ColorRole::OnSurfaceVariant));
+  m_glyph->setColor(
+      m_available ? (m_performanceActive ? activeColor : inactiveColor) : colorSpecFromRole(ColorRole::OnSurfaceVariant)
+  );
   m_glyph->measure(renderer);
   m_stateLabel->setVisible(m_showState);
   m_stateLabel->setParticipatesInLayout(m_showState);
@@ -96,9 +97,7 @@ void PowerProfileWidget::doLayout(Renderer& renderer, float containerWidth, floa
     const float width = m_glyph->width() + spacing + m_stateLabel->width();
     const float height = std::max(m_glyph->height(), m_stateLabel->height());
     m_glyph->setPosition(0.0f, std::round((height - m_glyph->height()) * 0.5f));
-    m_stateLabel->setPosition(
-        m_glyph->width() + spacing, std::round((height - m_stateLabel->height()) * 0.5f)
-    );
+    m_stateLabel->setPosition(m_glyph->width() + spacing, std::round((height - m_stateLabel->height()) * 0.5f));
     rootNode->setSize(width, height);
   }
 }
@@ -125,7 +124,7 @@ void PowerProfileWidget::syncState(Renderer& renderer) {
   m_glyph->setGlyph(profileGlyphName(profile));
   m_glyph->setColor(
       m_available ? (m_performanceActive ? colorSpecFromRole(ColorRole::Primary)
-                                        : widgetIconColorOr(colorSpecFromRole(ColorRole::OnSurfaceVariant)))
+                                         : widgetIconColorOr(colorSpecFromRole(ColorRole::OnSurfaceVariant)))
                   : colorSpecFromRole(ColorRole::OnSurfaceVariant)
   );
   m_glyph->measure(renderer);

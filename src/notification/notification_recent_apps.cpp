@@ -1,5 +1,4 @@
 #include "notification/notification_manager.h"
-
 #include "util/string_utils.h"
 
 #include <algorithm>
@@ -24,12 +23,14 @@ collectRecentNotificationApps(const std::deque<NotificationHistoryEntry>& histor
     if (!seen.insert(identity).second) {
       continue;
     }
-    apps.push_back(RecentNotificationApp{
-        .key = identity,
-        .displayName = appName.empty() ? std::string{"System"} : appName,
-        .icon = notification.icon,
-        .desktopEntry = notification.desktopEntry,
-    });
+    apps.push_back(
+        RecentNotificationApp{
+            .key = identity,
+            .displayName = appName.empty() ? std::string{"System"} : appName,
+            .icon = notification.icon,
+            .desktopEntry = notification.desktopEntry,
+        }
+    );
   }
   return apps;
 }

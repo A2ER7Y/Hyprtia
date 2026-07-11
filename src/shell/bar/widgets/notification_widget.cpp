@@ -130,8 +130,8 @@ void NotificationWidget::doLayout(Renderer& renderer, float containerWidth, floa
   m_glyph->setColor(widgetIconColorOr(colorSpecFromRole(ColorRole::OnSurface)));
   m_glyph->measure(renderer);
 
-  const bool showRecentApps = m_options.displayMode == NotificationWidgetDisplayMode::RecentApps && !m_dndEnabled
-      && m_visibleAppCount > 0;
+  const bool showRecentApps =
+      m_options.displayMode == NotificationWidgetDisplayMode::RecentApps && !m_dndEnabled && m_visibleAppCount > 0;
   m_glyph->setVisible(!showRecentApps);
   m_glyph->setParticipatesInLayout(!showRecentApps);
 
@@ -246,8 +246,8 @@ void NotificationWidget::refreshIndicatorState(Renderer* renderer) {
     m_glyph->setColor(widgetIconColorOr(colorSpecFromRole(ColorRole::OnSurface)));
   }
   if (m_dot != nullptr) {
-    const bool bellVisible = m_options.displayMode == NotificationWidgetDisplayMode::Bell || m_visibleAppCount == 0
-        || m_dndEnabled;
+    const bool bellVisible =
+        m_options.displayMode == NotificationWidgetDisplayMode::Bell || m_visibleAppCount == 0 || m_dndEnabled;
     m_dot->setVisible(m_hasNotifications && !m_dndEnabled && bellVisible);
   }
   if (stateChanged) {
@@ -291,8 +291,7 @@ void NotificationWidget::syncRecentAppIcons(Renderer& renderer) {
     }
 
     const RecentNotificationApp& app = apps[i];
-    const std::string iconPath =
-        resolveNotificationIconPath(app.icon, app.desktopEntry, m_iconResolver, targetSize);
+    const std::string iconPath = resolveNotificationIconPath(app.icon, app.desktopEntry, m_iconResolver, targetSize);
     if (image != nullptr && m_loadedAppKeys[i] != app.key + "\n" + iconPath) {
       if (iconPath.empty() || !image->setSourceFile(renderer, iconPath, targetSize, true)) {
         image->clear(renderer);

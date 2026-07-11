@@ -354,9 +354,8 @@ std::unique_ptr<Widget> WidgetFactory::create(
   if (type == "notifications") {
     const bool hideWhenNoUnread = wc != nullptr ? wc->getBool("hide_when_no_unread", false) : false;
     const std::string displayMode = wc != nullptr ? wc->getString("display_mode", "bell") : std::string{"bell"};
-    const auto maxAppIcons = static_cast<std::size_t>(
-        std::clamp<std::int64_t>(wc != nullptr ? wc->getInt("max_app_icons", 10) : 10, 1, 10)
-    );
+    const auto maxAppIcons =
+        static_cast<std::size_t>(std::clamp<std::int64_t>(wc != nullptr ? wc->getInt("max_app_icons", 10) : 10, 1, 10));
     const bool showEllipsis = wc != nullptr ? wc->getBool("show_ellipsis", true) : true;
     auto widget = std::make_unique<NotificationWidget>(
         m_notifications, output,
@@ -382,8 +381,7 @@ std::unique_ptr<Widget> WidgetFactory::create(
   if (type == "updates") {
     const bool hideWhenZero = wc != nullptr ? wc->getBool("hide_when_zero", false) : false;
     const std::string command = wc != nullptr ? wc->getString("command", "") : std::string{};
-    auto widget =
-        std::make_unique<UpdatesWidget>(m_packageUpdates, UpdatesWidget::Options{hideWhenZero, command});
+    auto widget = std::make_unique<UpdatesWidget>(m_packageUpdates, UpdatesWidget::Options{hideWhenZero, command});
     widget->setContentScale(contentScale);
     return widget;
   }

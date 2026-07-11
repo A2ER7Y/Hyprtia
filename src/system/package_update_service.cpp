@@ -172,9 +172,7 @@ void PackageUpdateService::workerLoop(std::stop_token stopToken) {
 
 PackageUpdateSnapshot PackageUpdateService::checkAll() const {
   PackageUpdateSnapshot result;
-  auto run = [this](const std::vector<std::string>& args) {
-    return process::runSync(args, runOptions(m_cancel));
-  };
+  auto run = [this](const std::vector<std::string>& args) { return process::runSync(args, runOptions(m_cancel)); };
 
   if (process::commandExists("checkupdates")) {
     const auto check = run({"checkupdates"});

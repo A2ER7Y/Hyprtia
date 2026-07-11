@@ -782,9 +782,7 @@ void Application::initBarDockAndLayout() {
       .scriptApi = &m_scriptApi,
   });
   if (m_packageUpdateService != nullptr) {
-    m_packageUpdateService->setChangeCallback([this]() {
-      DeferredCall::callLater([this]() { m_bar.refresh(); });
-    });
+    m_packageUpdateService->setChangeCallback([this]() { DeferredCall::callLater([this]() { m_bar.refresh(); }); });
     m_packageUpdateService->start();
   }
   m_idleInhibitor.setAnchorSurfacesProvider([this]() { return m_bar.caffeineAnchorSurfaces(); });
