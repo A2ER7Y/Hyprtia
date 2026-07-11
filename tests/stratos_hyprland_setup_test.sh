@@ -7,11 +7,13 @@ session_script=$2
 conf_resource=$3
 lua_resource=$4
 rule_resource=$5
+strat_runner=$6
 test_root=$(mktemp -d)
 trap 'rm -rf "$test_root"' EXIT HUP INT TERM
 
 install -Dm755 "$setup_script" "$test_root/prefix/bin/hyprtia-hyprland-setup"
 install -Dm755 "$session_script" "$test_root/prefix/bin/hyprtia-hyprland-session"
+install -Dm755 "$strat_runner" "$test_root/prefix/bin/hyprtia-strat"
 install -Dm644 "$conf_resource" "$test_root/prefix/share/hyprtia/hyprtia-hyprland.conf"
 install -Dm644 "$lua_resource" "$test_root/prefix/share/hyprtia/hyprtia-hyprland.lua"
 install -Dm644 "$rule_resource" "$test_root/prefix/share/hyprtia/hyprtia-confined-floats.conf"
@@ -34,7 +36,9 @@ chmod 755 "$test_root/stubs/hyprpm"
 cat >"$test_root/stubs/hyprctl" <<'EOF'
 #!/bin/sh
 printf '%s\n' "$*" >>"$HYPRTIA_HYPRCTL_TEST_LOG"
-exit 1
+case "$*" in
+  "dispatch hl.dsp.no_op()") printf '%s\n' ok ;;
+esac
 EOF
 chmod 755 "$test_root/stubs/hyprctl"
 
@@ -48,15 +52,19 @@ export PATH="$test_root/stubs:/usr/bin:/bin"
 
 "$test_root/prefix/bin/hyprtia-hyprland-setup" --auto
 
-cmp "$conf_resource" "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.conf"
+cmp "$lua_resource" "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.lua"
 cmp "$rule_resource" "$XDG_CONFIG_HOME/hypr/hyprtia-confined-floats.conf"
-grep -q 'kb_layout = fr' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.conf"
-grep -q 'exec-once = hyprtia-hyprland-session' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.conf"
+grep -q 'kb_layout = "fr"' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.lua"
+grep -q 'hl.on("hyprland.start"' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.lua"
+grep -q 'hl.exec_cmd("hyprtia-hyprland-session")' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.lua"
+! grep -q 'exec-once' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.lua"
+grep -qF 'require("hyprtia-stratos")' "$XDG_CONFIG_HOME/hypr/hyprland.lua"
+test ! -e "$XDG_CONFIG_HOME/hypr/hyprland.conf"
 grep -q '^windowrule {$' "$XDG_CONFIG_HOME/hypr/hyprtia-confined-floats.conf"
 grep -q 'confined-floats:confine' "$XDG_CONFIG_HOME/hypr/hyprtia-confined-floats.conf"
 ! grep -q 'windowrulev2' "$XDG_CONFIG_HOME/hypr/hyprtia-confined-floats.conf"
-grep -q 'source = .*hyprtia-stratos.conf' "$XDG_CONFIG_HOME/hypr/hyprland.conf"
-grep -q "keyword source $XDG_CONFIG_HOME/hypr/hyprtia-confined-floats.conf" "$HYPRTIA_HYPRCTL_TEST_LOG"
+grep -qF 'dispatch hl.dsp.no_op()' "$HYPRTIA_HYPRCTL_TEST_LOG"
+grep -qx reload "$HYPRTIA_HYPRCTL_TEST_LOG"
 test -f "$XDG_STATE_HOME/hyprtia/confined-floats.enabled"
 printf '%s\n' \
   list \
@@ -67,19 +75,18 @@ printf '%s\n' \
 cp "$HYPRTIA_HYPRPM_TEST_LOG" "$test_root/hyprpm-first.log"
 "$test_root/prefix/bin/hyprtia-hyprland-setup" --auto
 cmp "$test_root/hyprpm-first.log" "$HYPRTIA_HYPRPM_TEST_LOG"
-test "$(grep -c 'source = .*hyprtia-stratos.conf' "$XDG_CONFIG_HOME/hypr/hyprland.conf")" -eq 1
-
-export XDG_CONFIG_HOME="$test_root/lua-config"
-export XDG_STATE_HOME="$test_root/lua-state"
-export HYPRTIA_HYPRLAND_CONFIG_MODE=lua
-mkdir -p "$XDG_CONFIG_HOME/hypr"
-printf '%s\n' '-- existing Lua configuration' >"$XDG_CONFIG_HOME/hypr/hyprland.lua"
-
-"$test_root/prefix/bin/hyprtia-hyprland-setup" --config-only
-
-cmp "$lua_resource" "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.lua"
-grep -q 'kb_layout = "fr"' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.lua"
-grep -q 'confined_floats' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.lua"
-grep -qF 'require("hyprtia-stratos")' "$XDG_CONFIG_HOME/hypr/hyprland.lua"
-"$test_root/prefix/bin/hyprtia-hyprland-setup" --config-only
 test "$(grep -cF 'require("hyprtia-stratos")' "$XDG_CONFIG_HOME/hypr/hyprland.lua")" -eq 1
+
+export XDG_CONFIG_HOME="$test_root/legacy-config"
+export XDG_STATE_HOME="$test_root/legacy-state"
+mkdir -p "$XDG_CONFIG_HOME/hypr"
+printf '%s\n' '# existing legacy configuration' >"$XDG_CONFIG_HOME/hypr/hyprland.conf"
+
+"$test_root/prefix/bin/hyprtia-hyprland-setup" --config-only
+
+cmp "$conf_resource" "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.conf"
+grep -q 'kb_layout = fr' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.conf"
+grep -q 'source = .*hyprtia-stratos.conf' "$XDG_CONFIG_HOME/hypr/hyprland.conf"
+test ! -e "$XDG_CONFIG_HOME/hypr/hyprland.lua"
+"$test_root/prefix/bin/hyprtia-hyprland-setup" --config-only
+test "$(grep -c 'source = .*hyprtia-stratos.conf' "$XDG_CONFIG_HOME/hypr/hyprland.conf")" -eq 1

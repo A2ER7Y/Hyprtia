@@ -20,6 +20,18 @@ namespace {
   constexpr std::size_t kMaxOutputBytes = 512 * 1024;
   constexpr std::size_t kMaxAppImages = 40;
 
+  std::string envOr(std::string_view name, std::string_view fallback) {
+    const char* value = std::getenv(std::string(name).c_str());
+    return value != nullptr && *value != '\0' ? std::string(value) : std::string(fallback);
+  }
+
+  bool bedrockRoutingEnabled() {
+    const char* forced = std::getenv("HYPRTIA_FORCE_BEDROCK");
+    return process::commandExists("strat")
+        && ((forced != nullptr && std::string_view(forced) == "1")
+            || std::filesystem::exists("/bedrock/etc/bedrock-release"));
+  }
+
   process::RunOptions runOptions(const std::shared_ptr<std::atomic<bool>>& cancel) {
     return {
         .timeout = kCommandTimeout,
@@ -54,7 +66,7 @@ namespace {
 
 int PackageUpdateSnapshot::total() const noexcept {
   int result = 0;
-  for (const int count : {arch, aur, flatpak, snap, appimage, hyprtia}) {
+  for (const int count : {arch, aur, fedora, flatpak, snap, appimage, hyprtia}) {
     result += std::max(0, count);
   }
   return result;
@@ -66,6 +78,20 @@ namespace package_updates {
     return static_cast<int>(
         std::min<std::size_t>(nonEmptyLines(text).size(), static_cast<std::size_t>(std::numeric_limits<int>::max()))
     );
+  }
+
+  int countDnfUpdates(std::string_view text) {
+    int count = 0;
+    for (const std::string_view line : nonEmptyLines(text)) {
+      if (line.starts_with("Updating and loading repositories")
+          || line.starts_with("Repositories loaded")
+          || line.starts_with("Last metadata expiration check")
+          || line.starts_with("Available upgrades")) {
+        continue;
+      }
+      ++count;
+    }
+    return count;
   }
 
   int countSnapUpdates(std::string_view text) {
@@ -173,9 +199,31 @@ void PackageUpdateService::workerLoop(std::stop_token stopToken) {
 PackageUpdateSnapshot PackageUpdateService::checkAll() const {
   PackageUpdateSnapshot result;
   auto run = [this](const std::vector<std::string>& args) { return process::runSync(args, runOptions(m_cancel)); };
+  const bool useBedrock = bedrockRoutingEnabled();
+  const std::string systemStratum = envOr("HYPRTIA_SYSTEM_STRATUM", "kirolinux");
+  const std::string appsStratum = envOr("HYPRTIA_APPS_STRATUM", "fedora");
+  auto routedArgs = [useBedrock](const std::string& stratum, std::vector<std::string> args) {
+    if (!useBedrock) {
+      return args;
+    }
+    args.insert(args.begin(), stratum);
+    args.insert(args.begin(), "-r");
+    args.insert(args.begin(), "strat");
+    return args;
+  };
+  auto available = [&](const std::string& stratum, const std::string& command) {
+    if (!useBedrock) {
+      return process::commandExists(command);
+    }
+    const auto check = run({"strat", "-r", stratum, "sh", "-c", "command -v \"$1\" >/dev/null 2>&1", "sh", command});
+    return !check.timedOut && check.exitCode == 0;
+  };
+  auto runIn = [&](const std::string& stratum, std::vector<std::string> args) {
+    return run(routedArgs(stratum, std::move(args)));
+  };
 
-  if (process::commandExists("checkupdates")) {
-    const auto check = run({"checkupdates"});
+  if (available(systemStratum, "checkupdates")) {
+    const auto check = runIn(systemStratum, {"checkupdates"});
     if (!check.timedOut) {
       result.arch = 0;
       for (const std::string_view line : nonEmptyLines(check.out)) {
@@ -188,29 +236,39 @@ PackageUpdateSnapshot PackageUpdateService::checkAll() const {
     }
   }
 
-  const char* aurHelper = process::commandExists("yay") ? "yay" : (process::commandExists("paru") ? "paru" : nullptr);
-  if (aurHelper != nullptr) {
-    const auto check = run({aurHelper, "-Qua"});
+  const std::string aurHelper =
+      available(systemStratum, "yay") ? "yay" : (available(systemStratum, "paru") ? "paru" : "");
+  if (!aurHelper.empty()) {
+    const auto check = runIn(systemStratum, {aurHelper, "-Qua"});
     if (!check.timedOut) {
       result.aur = package_updates::countNonEmptyLines(check.out);
     }
   }
 
-  if (process::commandExists("flatpak")) {
-    const auto check = run({"flatpak", "remote-ls", "--updates", "--app", "--columns=application"});
+  const std::string dnfCommand = available(appsStratum, "dnf5") ? "dnf5" : (available(appsStratum, "dnf") ? "dnf" : "");
+  if (!dnfCommand.empty()) {
+    const auto check =
+        runIn(appsStratum, {dnfCommand, "-q", "repoquery", "--upgrades", "--queryformat=%{name}.%{arch}"});
+    if (!check.timedOut && check.exitCode == 0) {
+      result.fedora = package_updates::countDnfUpdates(check.out);
+    }
+  }
+
+  if (available(appsStratum, "flatpak")) {
+    const auto check = runIn(appsStratum, {"flatpak", "remote-ls", "--updates", "--app", "--columns=application"});
     if (!check.timedOut) {
       result.flatpak = package_updates::countNonEmptyLines(check.out);
     }
   }
 
-  if (process::commandExists("snap")) {
-    const auto check = run({"snap", "refresh", "--list"});
+  if (available(appsStratum, "snap")) {
+    const auto check = runIn(appsStratum, {"snap", "refresh", "--list"});
     if (!check.timedOut) {
       result.snap = package_updates::countSnapUpdates(check.out);
     }
   }
 
-  if (process::commandExists("appimageupdatetool")) {
+  if (available(appsStratum, "appimageupdatetool")) {
     result.appimage = 0;
     const char* home = std::getenv("HOME");
     const std::filesystem::path appDir =
@@ -226,7 +284,7 @@ PackageUpdateSnapshot PackageUpdateService::checkAll() const {
           continue;
         }
         ++checked;
-        const auto check = run({"appimageupdatetool", "--check-for-update", entry.path().string()});
+        const auto check = runIn(appsStratum, {"appimageupdatetool", "--check-for-update", entry.path().string()});
         if (!check.timedOut && check.exitCode == 1) {
           ++result.appimage;
         }
@@ -234,8 +292,9 @@ PackageUpdateSnapshot PackageUpdateService::checkAll() const {
     }
   }
 
-  if (result.hyprtia != 1 && process::commandExists("curl")) {
-    const auto check = run(
+  if (result.hyprtia != 1 && available(systemStratum, "curl")) {
+    const auto check = runIn(
+        systemStratum,
         {"curl", "-fsSL", "--max-time", "15", "-H", "Accept: application/vnd.github+json",
          "https://api.github.com/repos/A2ER7Y/Hyprtia/commits/main"}
     );

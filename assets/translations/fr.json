@@ -102,6 +102,13 @@
         "system": "Système",
         "upload": "Envoi"
       },
+      "updates": {
+        "available": "Mises à jour disponibles : {count}",
+        "checking": "Recherche de mises à jour",
+        "command-action": "Clic droit : ouvrir l’outil de mise à jour",
+        "refresh-action": "Clic gauche : actualiser",
+        "sources": "Arch : {arch} · AUR : {aur} · Fedora : {fedora} · Flatpak : {flatpak} · Snap : {snap} · AppImage : {appimage} · Hyprtia : {hyprtia}"
+      },
       "volume": {
         "device": "Périphérique",
         "mic": "Micro",

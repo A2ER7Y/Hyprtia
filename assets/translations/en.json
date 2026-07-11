@@ -119,7 +119,7 @@
         "checking": "Checking updates",
         "command-action": "Right click: open updater",
         "refresh-action": "Left click: refresh",
-        "sources": "Arch: {arch} · AUR: {aur} · Flatpak: {flatpak} · Snap: {snap} · AppImage: {appimage} · Hyprtia: {hyprtia}"
+        "sources": "Arch: {arch} · AUR: {aur} · Fedora: {fedora} · Flatpak: {flatpak} · Snap: {snap} · AppImage: {appimage} · Hyprtia: {hyprtia}"
       },
       "volume": {
         "device": "Device",

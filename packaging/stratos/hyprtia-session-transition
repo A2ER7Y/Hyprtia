@@ -9,32 +9,48 @@ set -eu
 action=${1:-}
 binary_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 prefix=$(dirname -- "$binary_dir")
+strat_runner=$binary_dir/hyprtia-strat
 lock_config=${HYPRTIA_LOCK_CONFIG:-"$prefix/share/hyprtia/brain-shell-hyprlock.conf"}
+
+has_system() {
+  if [ -x "$strat_runner" ]; then
+    "$strat_runner" --check system "$1"
+  else
+    command -v "$1" >/dev/null 2>&1
+  fi
+}
+
+run_system() {
+  if [ -x "$strat_runner" ]; then
+    exec "$strat_runner" system "$@"
+  fi
+  exec "$@"
+}
 
 case "$action" in
   lock)
-    if command -v hyprlock >/dev/null 2>&1; then
-      exec hyprlock -c "$lock_config"
+    if has_system hyprlock; then
+      run_system hyprlock -c "$lock_config"
     fi
-    exec loginctl lock-session
+    run_system loginctl lock-session
     ;;
   logout)
-    if command -v hyprshutdown >/dev/null 2>&1; then
-      exec hyprshutdown --top-label "Logging out..."
+    if has_system hyprshutdown; then
+      run_system hyprshutdown --top-label "Logging out..."
     fi
-    exec hyprctl dispatch exit
+    run_system hyprctl dispatch exit
     ;;
   reboot)
-    if command -v hyprshutdown >/dev/null 2>&1; then
-      exec hyprshutdown --top-label "Restarting..." --post-cmd "systemctl reboot"
+    if has_system hyprshutdown; then
+      run_system hyprshutdown --top-label "Restarting..." --post-cmd "systemctl reboot"
     fi
-    exec systemctl reboot
+    run_system systemctl reboot
     ;;
   shutdown)
-    if command -v hyprshutdown >/dev/null 2>&1; then
-      exec hyprshutdown --top-label "Shutting down..." --post-cmd "systemctl poweroff"
+    if has_system hyprshutdown; then
+      run_system hyprshutdown --top-label "Shutting down..." --post-cmd "systemctl poweroff"
     fi
-    exec systemctl poweroff
+    run_system systemctl poweroff
     ;;
   *)
     printf 'usage: %s {lock|logout|reboot|shutdown}\n' "${0##*/}" >&2

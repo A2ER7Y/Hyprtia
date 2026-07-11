@@ -8,6 +8,8 @@ int main() {
   assert(countNonEmptyLines("") == 0);
   assert(countNonEmptyLines("\n  \n") == 0);
   assert(countNonEmptyLines("one\ntwo\nthree\n") == 3);
+  assert(countDnfUpdates("firefox.x86_64\nlibreoffice-core.x86_64\n") == 2);
+  assert(countDnfUpdates("Updating and loading repositories:\nRepositories loaded.\nfirefox.x86_64\n") == 1);
 
   assert(countSnapUpdates("All snaps up to date.\n") == 0);
   assert(countSnapUpdates("Name Version Rev Size Publisher Notes\nfirefox 1 2 3 canonical** -\n") == 1);
@@ -22,11 +24,12 @@ int main() {
   PackageUpdateSnapshot snapshot{
       .arch = 2,
       .aur = 3,
+      .fedora = 2,
       .flatpak = 1,
       .snap = -1,
       .appimage = 4,
       .hyprtia = 1,
   };
-  assert(snapshot.total() == 11);
+  assert(snapshot.total() == 13);
   return 0;
 }

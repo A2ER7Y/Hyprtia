@@ -5,7 +5,7 @@ PartOf=graphical-session.target
 After=graphical-session.target
 
 [Service]
-ExecStart=hyprtia
+ExecStart=/usr/bin/hyprtia
 Restart=on-failure
 RestartSec=2
 

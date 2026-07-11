@@ -1,10 +1,10 @@
 # Maintainer: A2ER7Y
-# StratOS package recipe. Build from a clean clone with: makepkg -si
+# Bedrock StratOS package recipe. Build in KiroLinux with: strat -r kirolinux makepkg -si
 
 pkgname=hyprtia
 pkgver=5.0.0_beta2.stratos1
-pkgrel=7
-pkgdesc='Noctalia v5 Wayland shell adapted for StratOS'
+pkgrel=8
+pkgdesc='Noctalia v5 Wayland shell for Bedrock StratOS'
 arch=('x86_64')
 url='https://github.com/A2ER7Y/Hyprtia'
 license=('MIT')
@@ -38,7 +38,7 @@ optdepends=(
   'android-tools: ADB support for the legacy AndroidConnect extension'
   'hyprtia-assistant: compact NyarchAssistant companion and offline Ollama support'
   'desktopify-lite: create pinnable web-app launchers from dotfiles'
-  'hyprland: confined-floats plugin and French keyboard integration'
+  'hyprland>=0.55: Lua configuration, confined-floats plugin, and French keyboard integration'
   'cmake: build confined-floats through hyprpm'
   'python: built-in KDE color-scheme template'
   'python-jeepney: KDE color-scheme reload over D-Bus'
