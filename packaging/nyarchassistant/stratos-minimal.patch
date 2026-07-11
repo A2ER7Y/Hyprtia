@@ -387,19 +387,24 @@ index be74411..c1a11dc 100644
 +FALLBACK_VOICES = (("English", "en"),)
 +
 +
-@@ -11 +14,0 @@ class gTTSHandler(TTSHandler):
+@@ -10,5 +14,9 @@ class gTTSHandler(TTSHandler):
+     def get_voices(self):
 -        from gtts import gTTS, lang
-@@ -13,0 +17,5 @@ class gTTSHandler(TTSHandler):
+         if len(self.voices) > 0:
+             return self.voices
 +        try:
 +            from gtts import lang
 +        except ModuleNotFoundError:
 +            self.voices = FALLBACK_VOICES
 +            return self.voices
-@@ -23,2 +31,2 @@ class gTTSHandler(TTSHandler):
+         x = lang.tts_langs()
+@@ -22,4 +30,4 @@ class gTTSHandler(TTSHandler):
+     def save_audio(self, message, file):
 -        from gtts import gTTS, lang
 -        voice = self.get_current_voice()
 +        from gtts import gTTS
 +        voice = self.get_voice_for_text(message)
+         if not self.voice_available(voice):
 diff --git a/src/handlers/tts/tts.py b/src/handlers/tts/tts.py
 index d651fca..8e7d1d2 100644
 --- a/src/handlers/tts/tts.py

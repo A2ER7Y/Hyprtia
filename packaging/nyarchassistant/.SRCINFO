@@ -48,6 +48,6 @@ pkgbase = hyprtia-assistant
 	source = NyarchAssistant::git+https://github.com/NyarchLinux/NyarchAssistant.git#commit=bd632c7148d54f7d7cb8a9290862c99e9f66e61e
 	source = stratos-minimal.patch
 	sha256sums = SKIP
-	sha256sums = 045a29aea13b29d931424f4d7ad61106a6afea135bb3dd136b482f4b262c012d
+	sha256sums = b6d4663ba89140a794e00043d9d77557ee3ace08cd87f3ed88aa90bde3e5e3f8
 
 pkgname = hyprtia-assistant
