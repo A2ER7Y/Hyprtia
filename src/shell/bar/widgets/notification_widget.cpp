@@ -300,7 +300,7 @@ void NotificationWidget::syncRecentAppIcons(Renderer& renderer) {
     }
     const bool hasImage = image != nullptr && image->hasImage();
     if (image != nullptr) {
-      image->setRadius(targetSize * 0.25f);
+      image->setRadius(static_cast<float>(targetSize) * 0.25f);
       image->setVisible(hasImage);
       image->setParticipatesInLayout(hasImage);
     }
