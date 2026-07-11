@@ -97,12 +97,15 @@ Pinned entries use the same XDG desktop-entry discovery as the launcher and dock
 
 ### Hyprland plugin and French keyboard
 
-In a Hyprland session, the `hyprtia` launcher starts `hyprtia-hyprland-setup` once in the background. The helper:
+In a Hyprland session, the `hyprtia` launcher applies the managed `hyprtia-stratos.conf` or `hyprtia-stratos.lua` include
+in the background. It sets the XKB layout to French AZERTY with `kb_layout = fr` and configures Hyprland to reload enabled
+plugins on each session.
 
-- installs a managed `hyprtia-stratos.conf` or `hyprtia-stratos.lua` include under `~/.config/hypr/`;
-- sets the XKB layout to French AZERTY with `kb_layout = fr`;
-- adds and enables [confined-floats](https://github.com/mennemann/hyprland-confined-floats) through `hyprpm`;
-- reloads enabled plugins on each session and confines matching floating windows to the visible desktop.
+The default quick-shortcuts panel includes **Hyprland Confined Floats**. Opening it starts
+`hyprtia-hyprland-setup` in a terminal, where `hyprpm` can request the required `sudo` authentication, compile
+[confined-floats](https://github.com/mennemann/hyprland-confined-floats), enable it, and keep floating windows on-screen.
+The plugin installation is deliberately interactive because a first `hyprpm` build may require elevated access to prepare
+matching Hyprland headers.
 
 The plugin follows Hyprland's latest stable release and may need rebuilding after a Hyprland update. Run
 `hyprtia-hyprland-setup --force` to repair or re-enable it, or `hyprtia-hyprland-setup --config-only` to install only the

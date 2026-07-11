@@ -53,6 +53,7 @@ width_fraction = 0.333333
 commands = [
   "Terminal :: terminal: ${SHELL:-sh}",
   "Desktopify Lite :: terminal: desktopify-lite",
+  "Hyprland Confined Floats :: terminal: hyprtia-hyprland-setup",
 ]
 pinned = []
 # Other examples editable in Settings > Launcher:

@@ -41,7 +41,7 @@ printf '%s\n' --version | cmp - "$HYPRTIA_TEST_ARGS"
 export HYPRLAND_INSTANCE_SIGNATURE=test-instance
 export HYPRTIA_TEST_DELAY=1
 "$test_root/prefix/bin/hyprtia" msg status
-printf '%s\n' --auto | cmp - "$HYPRTIA_HYPRLAND_SETUP_LOG"
+printf '%s\n' --config-only | cmp - "$HYPRTIA_HYPRLAND_SETUP_LOG"
 unset HYPRLAND_INSTANCE_SIGNATURE HYPRTIA_TEST_DELAY
 
 export HYPRTIA_TEST_EXIT=17
