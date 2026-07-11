@@ -13,6 +13,7 @@ pkgbase = hyprtia-assistant
 	depends = libadwaita
 	depends = python
 	depends = python-beautifulsoup4
+	depends = python-cairo
 	depends = python-edge-tts
 	depends = python-expandvars
 	depends = python-gobject
