@@ -379,20 +379,27 @@ index df8987d..fd028eb 100644
          )
          for chunk in communicate.stream_sync():
 diff --git a/src/handlers/tts/gtts_handler.py b/src/handlers/tts/gtts_handler.py
-index be74411..6e84ca6 100644
+index be74411..c1a11dc 100644
 --- a/src/handlers/tts/gtts_handler.py
 +++ b/src/handlers/tts/gtts_handler.py
-@@ -20,8 +20,8 @@ class gTTSHandler(TTSHandler):
-         return res
- 
-     def save_audio(self, message, file):
+@@ -2,0 +3,4 @@ from .tts import TTSHandler
++
++FALLBACK_VOICES = (("English", "en"),)
++
++
+@@ -11 +14,0 @@ class gTTSHandler(TTSHandler):
+-        from gtts import gTTS, lang
+@@ -13,0 +17,5 @@ class gTTSHandler(TTSHandler):
++        try:
++            from gtts import lang
++        except ModuleNotFoundError:
++            self.voices = FALLBACK_VOICES
++            return self.voices
+@@ -23,2 +31,2 @@ class gTTSHandler(TTSHandler):
 -        from gtts import gTTS, lang
 -        voice = self.get_current_voice()
 +        from gtts import gTTS
 +        voice = self.get_voice_for_text(message)
-         if not self.voice_available(voice):
-             voice = self.get_voices()[0][1]
-         tts = gTTS(message, lang=voice)
 diff --git a/src/handlers/tts/tts.py b/src/handlers/tts/tts.py
 index d651fca..8e7d1d2 100644
 --- a/src/handlers/tts/tts.py
@@ -2591,6 +2598,77 @@ index 0000000..0d79b25
 +        )
 +        self.assertNotIn("shell", kwargs)
 +        self.assertEqual(kwargs["timeout"], 15)
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tests/test_gtts_handler.py b/tests/test_gtts_handler.py
+new file mode 100644
+index 0000000..f1c1d2f
+--- /dev/null
++++ b/tests/test_gtts_handler.py
+@@ -0,0 +1,65 @@
++import builtins
++import importlib.util
++import sys
++import types
++import unittest
++from unittest.mock import patch
++
++from tests.gi_stubs import install
++
++install()
++
++if importlib.util.find_spec("pydub") is None:
++    pydub = types.ModuleType("pydub")
++    pydub.AudioSegment = type("AudioSegment", (), {})
++    sys.modules["pydub"] = pydub
++
++if importlib.util.find_spec("requests_toolbelt") is None:
++    requests_toolbelt = types.ModuleType("requests_toolbelt")
++    multipart = types.ModuleType("requests_toolbelt.multipart")
++    encoder = types.ModuleType("requests_toolbelt.multipart.encoder")
++    encoder.MultipartEncoder = type("MultipartEncoder", (), {})
++    sys.modules["requests_toolbelt"] = requests_toolbelt
++    sys.modules["requests_toolbelt.multipart"] = multipart
++    sys.modules["requests_toolbelt.multipart.encoder"] = encoder
++
++from src.handlers.tts.gtts_handler import FALLBACK_VOICES, gTTSHandler
++
++
++class FakeSettings:
++    def get_string(self, _key):
++        return "{}"
++
++
++class GTTSHandlerTests(unittest.TestCase):
++    def setUp(self):
++        self.handler = gTTSHandler(FakeSettings(), "/tmp")
++
++    def test_extra_settings_use_safe_voice_when_gtts_is_missing(self):
++        real_import = builtins.__import__
++
++        def import_without_gtts(name, *args, **kwargs):
++            if name == "gtts":
++                raise ModuleNotFoundError("No module named 'gtts'", name="gtts")
++            return real_import(name, *args, **kwargs)
++
++        with patch("builtins.__import__", side_effect=import_without_gtts):
++            setting = self.handler.get_extra_settings()[0]
++
++        self.assertEqual(setting["values"], FALLBACK_VOICES)
++        self.assertEqual(setting["default"], "en")
++
++    def test_get_voices_uses_installed_gtts_metadata(self):
++        gtts = types.ModuleType("gtts")
++        gtts.lang = types.SimpleNamespace(
++            tts_langs=lambda: {"en": "English", "fr": "French"}
++        )
++
++        with patch.dict(sys.modules, {"gtts": gtts}):
++            voices = self.handler.get_voices()
++
++        self.assertEqual(voices, (("English", "en"), ("French", "fr")))
 +
 +
 +if __name__ == "__main__":

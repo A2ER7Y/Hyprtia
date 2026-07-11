@@ -15,6 +15,7 @@ depends=(
   'python'
   'python-beautifulsoup4'
   'python-cairo'
+  'python-ddgs'
   'python-edge-tts'
   'python-expandvars'
   'python-gobject'
@@ -26,6 +27,7 @@ depends=(
   'python-markdownify'
   'python-matplotlib'
   'python-mcp'
+  'python-model2vec'
   'python-newspaper'
   'python-openai'
   'python-pillow'
@@ -34,6 +36,7 @@ depends=(
   'python-pylatexenc'
   'python-requests'
   'python-requests-toolbelt'
+  'python-speechrecognition'
   'python-tiktoken'
   'vte4'
   'webkitgtk-6.0'
@@ -43,7 +46,6 @@ optdepends=(
   'ollama: native offline model server'
   'python-ollama: Ollama model management'
   'python-gtts: automatic language-aware Google TTS'
-  'python-speechrecognition: speech recognition support'
 )
 makedepends=('git' 'meson')
 provides=('nyarchassistant')
@@ -55,7 +57,7 @@ source=(
 )
 sha256sums=(
   'SKIP'
-  'd93b5a9d1de1383b4665bee9bf3334a3e7596cb95bb05eef271b40ba68663a72'
+  '045a29aea13b29d931424f4d7ad61106a6afea135bb3dd136b482f4b262c012d'
 )
 
 prepare() {
