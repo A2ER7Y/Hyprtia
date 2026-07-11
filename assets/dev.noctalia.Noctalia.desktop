@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Hyprtia
+Comment=Noctalia v5 desktop shell for StratOS
+Exec=hyprtia --daemon
+Icon=noctalia
+Terminal=false
+Categories=Settings;DesktopSettings;
+StartupNotify=false
+Actions=Settings;
+
+[Desktop Action Settings]
+Name=Open Settings
+Exec=sh -c "hyprtia msg settings-open || { hyprtia --daemon && hyprtia msg settings-open; }"

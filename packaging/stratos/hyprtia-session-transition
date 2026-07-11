@@ -1,0 +1,43 @@
+#!/bin/sh
+
+# Brain_Shell uses hyprshutdown for graceful session exits and hyprlock for
+# lock/unlock transitions. Keep that integration behind one stable Hyprtia
+# command so the session panel does not depend on user shell configuration.
+
+set -eu
+
+action=${1:-}
+binary_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+prefix=$(dirname -- "$binary_dir")
+lock_config=${HYPRTIA_LOCK_CONFIG:-"$prefix/share/hyprtia/brain-shell-hyprlock.conf"}
+
+case "$action" in
+  lock)
+    if command -v hyprlock >/dev/null 2>&1; then
+      exec hyprlock -c "$lock_config"
+    fi
+    exec loginctl lock-session
+    ;;
+  logout)
+    if command -v hyprshutdown >/dev/null 2>&1; then
+      exec hyprshutdown --top-label "Logging out..."
+    fi
+    exec hyprctl dispatch exit
+    ;;
+  reboot)
+    if command -v hyprshutdown >/dev/null 2>&1; then
+      exec hyprshutdown --top-label "Restarting..." --post-cmd "systemctl reboot"
+    fi
+    exec systemctl reboot
+    ;;
+  shutdown)
+    if command -v hyprshutdown >/dev/null 2>&1; then
+      exec hyprshutdown --top-label "Shutting down..." --post-cmd "systemctl poweroff"
+    fi
+    exec systemctl poweroff
+    ;;
+  *)
+    printf 'usage: %s {lock|logout|reboot|shutdown}\n' "${0##*/}" >&2
+    exit 64
+    ;;
+esac

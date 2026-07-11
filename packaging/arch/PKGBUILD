@@ -1,0 +1,74 @@
+# Maintainer: A2ER7Y
+# StratOS package recipe. Build from a clean clone with: makepkg -si
+
+pkgname=hyprtia
+pkgver=5.0.0_beta2.stratos1
+pkgrel=7
+pkgdesc='Noctalia v5 Wayland shell adapted for StratOS'
+arch=('x86_64')
+url='https://github.com/A2ER7Y/Hyprtia'
+license=('MIT')
+depends=(
+  'wayland' 'libglvnd' 'freetype2' 'fontconfig'
+  'cairo' 'pango' 'harfbuzz' 'libxkbcommon' 'glib2'
+  'sdbus-cpp' 'libpipewire' 'libwireplumber' 'pipewire' 'wireplumber' 'polkit'
+  'pam' 'curl' 'libwebp' 'librsvg' 'libqalculate'
+  'libxml2' 'md4c' 'tomlplusplus' 'jemalloc' 'hicolor-icon-theme'
+  'hyprlock' 'hyprshutdown'
+)
+makedepends=(
+  'git' 'meson' 'ninja' 'pkgconf' 'wayland-protocols'
+  'nlohmann-json' 'stb'
+)
+optdepends=(
+  'upower: battery and power device integration'
+  'ddcutil: external monitor brightness control'
+  'wtype: clipboard auto-paste fallback'
+  'networkmanager: network controls'
+  'bluez: Bluetooth controls'
+  'power-profiles-daemon: power profile controls'
+  'pacman-contrib: official Arch repository update counter'
+  'yay: AUR update counter'
+  'paru: alternative AUR update counter'
+  'flatpak: Flatpak update counter'
+  'snapd: Snap update counter'
+  'appimageupdate: AppImage update counter'
+  'kdeconnect: Android Connect bar button and device integration'
+  'scrcpy: Android screen mirroring with the legacy AndroidConnect extension'
+  'android-tools: ADB support for the legacy AndroidConnect extension'
+  'hyprtia-assistant: compact NyarchAssistant companion and offline Ollama support'
+  'desktopify-lite: create pinnable web-app launchers from dotfiles'
+  'hyprland: confined-floats plugin and French keyboard integration'
+  'cmake: build confined-floats through hyprpm'
+  'python: built-in KDE color-scheme template'
+  'python-jeepney: KDE color-scheme reload over D-Bus'
+)
+provides=('noctalia=5.0.0')
+conflicts=('noctalia' 'noctalia-git')
+options=('!debug' 'lto')
+source=()
+sha256sums=()
+
+prepare() {
+  local repo_root
+  repo_root=$(realpath "$startdir/../..")
+  mkdir -p "$srcdir/$pkgname"
+  git -C "$repo_root" archive --format=tar HEAD |
+    tar -xf - -C "$srcdir/$pkgname"
+}
+
+build() {
+  arch-meson "$pkgname" build \
+    -Dtests=enabled \
+    -Djemalloc=enabled \
+    -Dsource_assets_fallback=false
+  meson compile -C build
+}
+
+check() {
+  meson test -C build --print-errorlogs
+}
+
+package() {
+  meson install -C build --destdir "$pkgdir"
+}

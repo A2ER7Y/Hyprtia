@@ -1,0 +1,170 @@
+# Hyprtia defaults for the StratOS Hyprland spin.
+# This file is copied only when the user has no Noctalia configuration.
+
+[shell]
+font_family = "Noto Sans"
+offline_mode = false
+telemetry_enabled = false
+polkit_agent = true
+setup_wizard_enabled = false
+clipboard_enabled = false
+
+# Match Brain_Shell's session transitions: hyprlock fades into and out of the
+# lock screen, while hyprshutdown gracefully closes applications before exit.
+[[shell.session.actions]]
+action = "lock"
+command = "hyprtia-session-transition lock"
+shortcut = "1"
+
+[[shell.session.actions]]
+action = "logout"
+command = "hyprtia-session-transition logout"
+shortcut = "2"
+
+[[shell.session.actions]]
+action = "lock_and_suspend"
+shortcut = "3"
+
+[[shell.session.actions]]
+action = "reboot"
+command = "hyprtia-session-transition reboot"
+shortcut = "4"
+
+[[shell.session.actions]]
+action = "shutdown"
+command = "hyprtia-session-transition shutdown"
+variant = "destructive"
+shortcut = "5"
+
+[shell.panel]
+launcher_placement = "floating"
+launcher_position = "auto"
+floating_offset = 8
+
+[shell.launcher]
+categories = false
+show_icons = true
+compact = true
+app_grid = false
+sort_by_usage = true
+width_fraction = 0.333333
+
+[shell.shortcuts]
+commands = [
+  "Terminal :: terminal: ${SHELL:-sh}",
+  "Desktopify Lite :: terminal: desktopify-lite",
+  "Hyprland Confined Floats :: terminal: hyprtia-hyprland-setup",
+]
+pinned = []
+# Other examples editable in Settings > Launcher:
+# "Install dotfiles :: terminal: sh \"$HOME/dotfiles/install.sh\""
+# "Custom script :: sh \"$HOME/.local/bin/my-script\""
+
+# ActivSpot-inspired top bar implemented with native Hyprtia widgets so every
+# lane, capsule and widget remains editable in Settings > Bar.
+[bar.activspot]
+position = "top"
+thickness = 48
+background_opacity = 0.0
+radius = 14
+margin_ends = 4
+margin_edge = 8
+padding = 8
+widget_spacing = 4
+shadow = false
+auto_hide = false
+reserve_space = true
+capsule = true
+capsule_fill = "surface"
+capsule_border = "outline"
+capsule_padding = 10
+capsule_radius = 14
+capsule_opacity = 0.88
+
+start = ["caelestia_launcher", "workspaces"]
+center = ["assistant", "clock", "media", "shortcuts"]
+end = [
+  "tray",
+  "compact_notifications",
+  "android_connect",
+  "updates",
+  "performance_mode",
+  "network",
+  "volume",
+  "battery",
+  "control-center",
+  "settings",
+  "session",
+]
+
+[widget.caelestia_launcher]
+type = "launcher"
+glyph = "apps"
+
+[widget.compact_notifications]
+type = "notifications"
+display_mode = "icons"
+max_app_icons = 10
+show_ellipsis = true
+icon_size = 18
+icon_spacing = 4
+hide_when_no_unread = false
+
+[widget.android_connect]
+type = "custom_button"
+glyph = "device-mobile"
+tooltip = "Android Connect"
+command = "hyprtia-android-connect"
+
+[widget.assistant]
+type = "custom_button"
+glyph = "message-chatbot"
+tooltip = "Hyprtia Assistant"
+command = "hyprtia-assistant"
+
+[widget.shortcuts]
+type = "shortcuts"
+glyph = "bookmark"
+columns = 4
+button_width = 124
+button_height = 92
+entry_glyph_size = 26
+command_glyph = "player-play"
+terminal_glyph = "terminal-2"
+app_glyph = "apps"
+
+[widget.updates]
+type = "updates"
+glyph = "download"
+show_label = true
+hide_when_zero = false
+
+[widget.performance_mode]
+type = "power_profile"
+show_state = true
+state_display = "performance"
+hide_when_unavailable = false
+
+[wallpaper]
+enabled = true
+directory = "~/Pictures/Wallpapers"
+fill_mode = "crop"
+
+[theme]
+mode = "dark"
+source = "builtin"
+builtin = "Tokyo-Night"
+
+[theme.templates]
+enable_builtin_templates = true
+builtin_ids = ["hyprland", "gtk3", "gtk4", "ghostty"]
+enable_community_templates = false
+
+[notification]
+enable_daemon = true
+
+[audio]
+enable_sounds = true
+
+[weather]
+enabled = false

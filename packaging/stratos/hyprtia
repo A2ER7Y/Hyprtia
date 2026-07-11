@@ -1,0 +1,35 @@
+#!/bin/sh
+
+set -eu
+
+binary_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+prefix=$(dirname -- "$binary_dir")
+defaults=${HYPRTIA_STRATOS_CONFIG:-"$prefix/share/hyprtia/config.toml"}
+config_root=${NOCTALIA_CONFIG_HOME:-${XDG_CONFIG_HOME:-"$HOME/.config"}}
+config_dir=${config_root%/}/noctalia
+has_user_config=false
+
+if [ -d "$config_dir" ]; then
+  for config_file in "$config_dir"/*.toml; do
+    if [ -f "$config_file" ]; then
+      has_user_config=true
+      break
+    fi
+  done
+fi
+
+if [ "$has_user_config" = false ] && [ -f "$defaults" ]; then
+  install -Dm644 "$defaults" "$config_dir/stratos.toml"
+fi
+
+hyprland_setup=$binary_dir/hyprtia-hyprland-setup
+if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] &&
+  [ "${HYPRTIA_HYPRLAND_SETUP:-1}" != 0 ] &&
+  [ -x "$hyprland_setup" ]; then
+  state_root=${HYPRTIA_STATE_HOME:-${XDG_STATE_HOME:-"$HOME/.local/state"}}
+  setup_log=${state_root%/}/hyprtia/hyprland-setup.log
+  mkdir -p "$(dirname -- "$setup_log")"
+  "$hyprland_setup" --config-only >>"$setup_log" 2>&1 &
+fi
+
+exec "$binary_dir/noctalia" "$@"

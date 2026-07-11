@@ -1,0 +1,3004 @@
+diff --git a/data/moe.nyarchlinux.assistant.gschema.xml b/data/moe.nyarchlinux.assistant.gschema.xml
+index beac114..5eac9f5 100644
+--- a/data/moe.nyarchlinux.assistant.gschema.xml
++++ b/data/moe.nyarchlinux.assistant.gschema.xml
+@@ -69,6 +69,9 @@
+         </key>
+ 	      <key name="tts-on" type="b">
+             <default>true</default>
++        </key>
++        <key name="tts-auto-language" type="b">
++            <default>true</default>
+         </key>
+ 	      <key name="tts" type="s">
+             <default>"edge_tts"</default>
+@@ -205,6 +208,18 @@
+ 	      <key name="window-height" type="i">
+           <default>800</default>
+         </key>
++        <key name="compact-mode" type="b">
++          <default>true</default>
++        </key>
++        <key name="compact-window-width" type="i">
++          <default>420</default>
++        </key>
++        <key name="compact-window-height" type="i">
++          <default>720</default>
++        </key>
++        <key name="compact-avatar-width" type="i">
++          <default>132</default>
++        </key>
+         <key name="external-browser" type="b">
+           <default>false</default>
+         </key>
+diff --git a/src/constants.py b/src/constants.py
+index d54584a..1704265 100644
+--- a/src/constants.py
++++ b/src/constants.py
+@@ -1,5 +1,5 @@
+ from copy import deepcopy
+-from .handlers.llm import ClaudeHandler, DeepseekHandler, GroqHandler, OllamaHandler, OllamaCloudHandler, OpenAIHandler, CustomLLMHandler, GeminiHandler, MistralHandler, OpenRouterHandler, NewelleAPIHandler, G4FHandler, LlamaCPPHandler
++from .handlers.llm import ClaudeHandler, DeepseekHandler, GroqHandler, KimiHandler, OllamaHandler, OllamaCloudHandler, OpenAIHandler, CustomLLMHandler, GeminiHandler, MistralHandler, OpenRouterHandler, NewelleAPIHandler, G4FHandler, LlamaCPPHandler
+ from .handlers.tts import ElevenLabs, gTTSHandler, EspeakHandler, CustomTTSHandler, KokoroTTSHandler, CustomOpenAITTSHandler, OpenAITTSHandler, GroqTTSHandler, EdgeTTSHandler
+ from .handlers.stt import GroqSRHandler, OpenAISRHandler, SphinxHandler, GoogleSRHandler, WhisperCPPHandler, WitAIHandler, VoskHandler, CustomSRHandler, OpenWakeWordHandler
+ from .handlers.embeddings import WordLlamaHandler, OpenAIEmbeddingHandler, GeminiEmbeddingHanlder, OllamaEmbeddingHandler, Model2VecHandler, LlamaCPPEmbeddingHandler
+@@ -18,6 +18,7 @@ from .integrations.default_tools import DefaultToolsIntegration
+ from .integrations.skills import SkillsIntegration
+ from .integrations.agent_tools import AgentToolsIntegration
+ from .integrations.file_editing import FileEditingIntegration
++from .integrations.git_forge import GitForgeIntegration
+ from .integrations.todo_list import TodoListIntegration
+ from .integrations.mermaid import MermaidIntegration
+ 
+@@ -30,7 +31,7 @@ from .handlers.avatar import Live2DHandler, LivePNGHandler, VRMHandler
+ from .handlers.translator import CustomTranslatorHandler, GoogleTranslatorHandler, LibreTranslateHandler, LigvaTranslateHandler
+ 
+ 
+-AVAILABLE_INTEGRATIONS = [WebsiteReader, WebsearchIntegration, MermaidIntegration, MCPIntegration, SkillsIntegration, DefaultToolsIntegration, AgentToolsIntegration, FileEditingIntegration, TodoListIntegration]
++AVAILABLE_INTEGRATIONS = [WebsiteReader, WebsearchIntegration, MermaidIntegration, MCPIntegration, SkillsIntegration, DefaultToolsIntegration, AgentToolsIntegration, FileEditingIntegration, GitForgeIntegration, TodoListIntegration]
+ 
+ AVAILABLE_INTEGRATIONS += [ArchLinuxExtension]
+ 
+@@ -119,6 +120,13 @@ AVAILABLE_LLMS = {
+         "description": _("OpenAI API. Custom endpoints supported. Use this for custom providers"),
+         "class": OpenAIHandler,
+     },
++    "kimi": {
++        "key": "kimi",
++        "title": _("Kimi K2.6 (Moonshot)"),
++        "description": _("Official Moonshot Kimi K2.6 API with thinking and native tool calling"),
++        "website": "https://platform.moonshot.ai/",
++        "class": KimiHandler,
++    },
+     "claude": {
+         "key": "claude",
+         "title": _("Anthropic Claude"),
+diff --git a/src/handlers/llm/__init__.py b/src/handlers/llm/__init__.py
+index dbaa582..ac4c5d4 100644
+--- a/src/handlers/llm/__init__.py
++++ b/src/handlers/llm/__init__.py
+@@ -14,6 +14,7 @@ from .newelle_handler import NewelleAPIHandler
+ from .deepseek_handler import DeepseekHandler
+ from .llama_cpp_handler import LlamaCPPHandler
+ from .nyarch_handler import NyarchApiHandler
++from .kimi_handler import KimiHandler
+ 
+ __all__ = [
+     "LLMHandler",
+@@ -31,5 +32,6 @@ __all__ = [
+     "NewelleAPIHandler",
+     "DeepseekHandler",
+     "LlamaCPPHandler",
+-    "NyarchApiHandler"
++    "NyarchApiHandler",
++    "KimiHandler"
+ ]
+diff --git a/src/handlers/llm/kimi_handler.py b/src/handlers/llm/kimi_handler.py
+new file mode 100644
+index 0000000..93865ba
+--- /dev/null
++++ b/src/handlers/llm/kimi_handler.py
+@@ -0,0 +1,94 @@
++from gettext import gettext as _
++
++from .openai_handler import OpenAIHandler
++from ...handlers import ExtraSettings
++
++
++SWARM_SYSTEM_INSTRUCTION = (
++    "Swarm orchestration is enabled. For complex tasks, explicitly decompose the "
++    "work into independent subtasks and use available subagent tools to run "
++    "independent work in parallel when useful. Keep simple tasks direct, respect "
++    "all tool permissions, and synthesize the subagent results into one answer."
++)
++KIMI_K2_6_QUICKSTART_URL = (
++    "https://platform.moonshot.ai/docs/guide/kimi-k2-6-quickstart"
++)
++
++
++class KimiHandler(OpenAIHandler):
++    """Moonshot AI's OpenAI-compatible Kimi K2.6 handler."""
++
++    key = "kimi"
++    default_models = (("kimi-k2.6", "kimi-k2.6"),)
++    endpoint = "https://api.moonshot.ai/v1"
++
++    def __init__(self, settings, path):
++        super().__init__(settings, path)
++        self.set_setting("endpoint", self.endpoint)
++
++    def get_models(self, manual=False):
++        """Kimi K2.6 is intentionally exposed under its official model ID."""
++        self.models = self.default_models
++
++    def supports_vision(self) -> bool:
++        return True
++
++    def get_extra_settings(self) -> list:
++        settings = self.build_extra_settings(
++            "Moonshot Kimi",
++            True,
++            True,
++            False,
++            True,
++            False,
++            "https://www.moonshot.ai/privacy-policy",
++            KIMI_K2_6_QUICKSTART_URL,
++            supports_tool_calling=True,
++            has_tool_calling_option=True,
++        )
++        model_setting = ExtraSettings.ComboSetting(
++            "model",
++            _("Kimi Model"),
++            _("Official Moonshot model ID"),
++            self.default_models,
++            "kimi-k2.6",
++        )
++        model_setting["website"] = KIMI_K2_6_QUICKSTART_URL
++        settings.insert(
++            1,
++            model_setting,
++        )
++        settings += [
++            ExtraSettings.ToggleSetting(
++                "thinking",
++                _("Thinking Mode"),
++                _("Send Moonshot's native thinking enabled/disabled request body"),
++                True,
++            ),
++            ExtraSettings.ToggleSetting(
++                "swarm_mode",
++                _("Swarm Orchestration Prompt"),
++                _(
++                    "Encourage Kimi to decompose complex work and coordinate "
++                    "parallel subagents; this adds a system instruction and is "
++                    "not a Moonshot API parameter"
++                ),
++                False,
++            ),
++        ]
++        return settings
++
++    def get_thinking_params(self):
++        state = "enabled" if self.get_setting("thinking", False, True) else "disabled"
++        return {"thinking": {"type": state}}
++
++    def prepare_system_prompts(self, prompts: list[str] | None) -> list[str]:
++        prepared = list(prompts or [])
++        if self.get_setting("swarm_mode", False, False):
++            prepared.append(SWARM_SYSTEM_INSTRUCTION)
++        return prepared
++
++    def convert_history(self, history: list, prompts: list | None = None) -> list:
++        if prompts is None:
++            prompts = self.prompts
++        return super().convert_history(history, self.prepare_system_prompts(prompts))
+diff --git a/src/handlers/llm/ollama_catalog.py b/src/handlers/llm/ollama_catalog.py
+new file mode 100644
+index 0000000..4e643d8
+--- /dev/null
++++ b/src/handlers/llm/ollama_catalog.py
+@@ -0,0 +1,73 @@
++"""Curated, installable Ollama presets used by the model library."""
++
++from copy import deepcopy
++
++
++RECOMMENDED_OLLAMA_MODELS = (
++    {
++        "key": "llama3.2:3b",
++        "title": "Llama 3.2 3B",
++        "description": "Small general-purpose local model suitable for modest systems.",
++        "tags": ["recommended", "small", "3B"],
++        "hardware_tier": "small",
++        "installable": True,
++    },
++    {
++        "key": "gemma3:4b",
++        "title": "Gemma 3 4B",
++        "description": "Compact multimodal model for practical local use.",
++        "tags": ["recommended", "small", "4B", "vision"],
++        "hardware_tier": "small",
++        "installable": True,
++    },
++    {
++        "key": "qwen2.5-coder:7b",
++        "title": "Qwen2.5 Coder 7B",
++        "description": "Practical local coding model for systems with moderate memory.",
++        "tags": ["recommended", "coding", "7B"],
++        "hardware_tier": "medium",
++        "installable": True,
++    },
++    {
++        "key": "phi4-mini:3.8b",
++        "title": "Phi-4 Mini 3.8B",
++        "description": "Small reasoning-oriented model for local assistants.",
++        "tags": ["recommended", "small", "3.8B"],
++        "hardware_tier": "small",
++        "installable": True,
++    },
++    {
++        "key": "llama4:scout",
++        "title": "Llama 4 Scout",
++        "description": (
++            "Extremely hardware-heavy local model. Requires workstation/server-class "
++            "memory and is not a practical default for typical PCs."
++        ),
++        "tags": ["extremely hardware-heavy", "Llama 4", "vision"],
++        "hardware_tier": "extreme",
++        "installable": True,
++    },
++    {
++        "key": "llama4:maverick",
++        "title": "Llama 4 Maverick",
++        "description": (
++            "Extremely hardware-heavy local model. Intended for large multi-GPU or "
++            "server-class systems, not ordinary local hardware."
++        ),
++        "tags": ["extremely hardware-heavy", "Llama 4", "vision"],
++        "hardware_tier": "extreme",
++        "installable": True,
++    },
++)
++
++
++def get_recommended_ollama_models() -> list[dict]:
++    """Return independent metadata dictionaries safe for UI mutation."""
++    return deepcopy(list(RECOMMENDED_OLLAMA_MODELS))
++
++
++def get_recommended_ollama_model(model_key: str) -> dict | None:
++    for model in RECOMMENDED_OLLAMA_MODELS:
++        if model["key"] == model_key:
++            return deepcopy(model)
++    return None
+diff --git a/src/handlers/llm/ollama_handler.py b/src/handlers/llm/ollama_handler.py
+index f1ef2a2..97784a5 100644
+--- a/src/handlers/llm/ollama_handler.py
++++ b/src/handlers/llm/ollama_handler.py
+@@ -16,6 +16,10 @@ from ...utility import get_streaming_extra_setting, extract_tools_from_prompts,
+ from ...utility.system import can_escape_sandbox, get_spawn_command
+ from ...utility.media import extract_image
+ from ...handlers import ExtraSettings
++from .ollama_catalog import (
++    get_recommended_ollama_model,
++    get_recommended_ollama_models,
++)
+ 
+ class OllamaHandler(LLMHandler):
+     key = "ollama"
+@@ -24,7 +28,9 @@ class OllamaHandler(LLMHandler):
+     # Url where to get the available models info
+     library_url = "https://raw.githubusercontent.com/FrancescoCaracciolo/llm-library-scraper/refs/heads/main/ollama/available_models.json"
+     # List of models to be included in the library by default
+-    pinned_models = ["qwen3.5:4b", "qwen3.5:9b", "gemma4:e2b", "gemma4:e4b"]
++    pinned_models = [
++        model["key"] for model in get_recommended_ollama_models()
++    ]
+ 
+     def get_cache_path(self):
+         cache_dir = self.path
+@@ -88,6 +94,13 @@ class OllamaHandler(LLMHandler):
+         Returns:
+            dict - information to be added to the library 
+         """
++        recommended = get_recommended_ollama_model(model)
++        if recommended is not None:
++            return {
++                "key": recommended["key"],
++                "title": recommended["title"],
++                "description": recommended["description"],
++            }
+         if ":" in model:
+             name = model.split(":")[0]
+             tag = model.split(":")[1]
+@@ -105,7 +118,8 @@ class OllamaHandler(LLMHandler):
+         parts = key.split(":")
+         family = parts[0]
+         
+-        extra_tags = []
++        recommended = get_recommended_ollama_model(key)
++        extra_tags = list(recommended["tags"]) if recommended is not None else []
+         if family in self.models_info:
+             raw_info = self.models_info[family]
+             if "tags" in raw_info:
+@@ -163,8 +177,15 @@ class OllamaHandler(LLMHandler):
+             )
+ 
+         # 1. Pinned Models
++        recommended_by_key = {
++            model["key"]: model for model in get_recommended_ollama_models()
++        }
+         for key in pinned:
+-            m = create_model_obj(key, pinned=True)
++            m = create_model_obj(
++                key,
++                info_source=recommended_by_key.get(key),
++                pinned=True,
++            )
+             if m:
+                 models.append(m)
+                 unique_keys.add(key)
+diff --git a/src/handlers/tts/edge_handler.py b/src/handlers/tts/edge_handler.py
+index df8987d..fd028eb 100644
+--- a/src/handlers/tts/edge_handler.py
++++ b/src/handlers/tts/edge_handler.py
+@@ -1,6 +1,7 @@
+ import threading
+ import asyncio
+ from pydub import AudioSegment
++from gi.repository import GLib
+ 
+ from .tts import TTSHandler
+ from ...utility.force_sync import force_sync
+@@ -49,7 +50,7 @@ class EdgeTTSHandler(TTSHandler):
+ 
+     def save_audio(self, message, file):
+         import edge_tts
+-        communicate = edge_tts.Communicate(message, self.get_setting("voice"), pitch= "+{}Hz".format(round(self.get_setting("pitch"))))
++        communicate = edge_tts.Communicate(message, self.get_voice_for_text(message), pitch= "+{}Hz".format(round(self.get_setting("pitch"))))
+         mp3 = file + ".mp3"
+         communicate.save_sync(mp3)
+         AudioSegment.from_mp3(mp3).export(file, format="wav")
+@@ -69,7 +70,7 @@ class EdgeTTSHandler(TTSHandler):
+                 result += ((voice["ShortName"], voice["ShortName"]),)
+             self.voices = result
+             self.set_setting("voices", self.voices)
+-            self.settings_update()
++            GLib.idle_add(self.settings_update)
+         _ = get_voices()
+         return self.voices
+ 
+@@ -83,7 +84,7 @@ class EdgeTTSHandler(TTSHandler):
+         import edge_tts
+         communicate = edge_tts.Communicate(
+             message,
+-            self.get_setting("voice"),
++            self.get_voice_for_text(message),
+             pitch="+{}Hz".format(round(self.get_setting("pitch")))
+         )
+         for chunk in communicate.stream_sync():
+diff --git a/src/handlers/tts/gtts_handler.py b/src/handlers/tts/gtts_handler.py
+index be74411..c1a11dc 100644
+--- a/src/handlers/tts/gtts_handler.py
++++ b/src/handlers/tts/gtts_handler.py
+@@ -2,0 +3,4 @@ from .tts import TTSHandler
++
++FALLBACK_VOICES = (("English", "en"),)
++
++
+@@ -10,5 +14,9 @@ class gTTSHandler(TTSHandler):
+     def get_voices(self):
+-        from gtts import gTTS, lang
+         if len(self.voices) > 0:
+             return self.voices
++        try:
++            from gtts import lang
++        except ModuleNotFoundError:
++            self.voices = FALLBACK_VOICES
++            return self.voices
+         x = lang.tts_langs()
+@@ -22,4 +30,4 @@ class gTTSHandler(TTSHandler):
+     def save_audio(self, message, file):
+-        from gtts import gTTS, lang
+-        voice = self.get_current_voice()
++        from gtts import gTTS
++        voice = self.get_voice_for_text(message)
+         if not self.voice_available(voice):
+diff --git a/src/handlers/tts/tts.py b/src/handlers/tts/tts.py
+index d651fca..8e7d1d2 100644
+--- a/src/handlers/tts/tts.py
++++ b/src/handlers/tts/tts.py
+@@ -6,6 +6,7 @@ import threading
+ import time
+ import os
+ from ..handler import Handler
++from ...utility.language_accent import resolve_voice_for_text
+ 
+ class TTSHandler(Handler):
+     """Every TTS handler should extend this class."""
+@@ -109,6 +110,21 @@ class TTSHandler(Handler):
+         else:
+             return voice
+ 
++    def get_voice_for_text(self, text):
++        """Return a temporary text-appropriate voice when enabled."""
++        configured_voice = self.get_current_voice()
++        try:
++            automatic_language = self.settings.get_boolean("tts-auto-language")
++        except Exception:
++            automatic_language = False
++        if not automatic_language:
++            return configured_voice
++
++        voices = self.voices
++        if not voices:
++            voices = self.get_voices()
++        return resolve_voice_for_text(text, voices, configured_voice)
++
+     def set_voice(self, voice):
+         """Set the given voice"""
+         self.set_setting("voice", voice)
+diff --git a/src/integrations/agent_tools.py b/src/integrations/agent_tools.py
+index 08e812d..03ca069 100644
+--- a/src/integrations/agent_tools.py
++++ b/src/integrations/agent_tools.py
+@@ -1,5 +1,8 @@
+ import threading
+ import json
++import uuid
++from concurrent.futures import ThreadPoolExecutor
++from gettext import gettext as _
+ from gi.repository import Gtk, Adw, GLib, Gio
+ from ..extensions import NewelleExtension
+ from ..tools import Tool, ToolResult, create_io_tool
+@@ -9,6 +12,61 @@ from ..ui.widgets.question import QuestionWidget, RestoredQuestionWidget
+ from ..ui.widgets.comborow import ComboRowHelper
+ 
+ 
++DEFAULT_SWARM_CONCURRENCY = 3
++MAX_SWARM_CONCURRENCY = 8
++MAX_SWARM_TASKS = 32
++
++
++def enforce_swarm_cap(requested=DEFAULT_SWARM_CONCURRENCY, hard_cap=MAX_SWARM_CONCURRENCY) -> int:
++    """Return a safe worker count, bounded by the global maximum of eight."""
++    try:
++        safe_hard_cap = max(1, min(int(hard_cap), MAX_SWARM_CONCURRENCY))
++    except (TypeError, ValueError) as exc:
++        raise ValueError("hard_cap must be an integer") from exc
++    if requested is None:
++        return min(DEFAULT_SWARM_CONCURRENCY, safe_hard_cap)
++    try:
++        requested = int(requested)
++    except (TypeError, ValueError) as exc:
++        raise ValueError("concurrency must be an integer") from exc
++    if requested < 1:
++        raise ValueError("concurrency must be at least 1")
++    return min(requested, safe_hard_cap)
++
++
++def parse_swarm_tasks(tasks) -> list[dict[str, str]]:
++    """Normalize a JSON/list task specification without touching GTK."""
++    if isinstance(tasks, str):
++        try:
++            tasks = json.loads(tasks)
++        except json.JSONDecodeError as exc:
++            raise ValueError(f"tasks must be a valid JSON list: {exc.msg}") from exc
++    if not isinstance(tasks, list):
++        raise ValueError("tasks must be a list or a JSON-encoded list")
++    if not tasks:
++        raise ValueError("tasks must contain at least one task")
++    if len(tasks) > MAX_SWARM_TASKS:
++        raise ValueError(f"tasks may contain at most {MAX_SWARM_TASKS} entries")
++
++    normalized = []
++    for index, item in enumerate(tasks):
++        if isinstance(item, str):
++            item = {"task": item}
++        if not isinstance(item, dict):
++            raise ValueError(f"task {index + 1} must be a string or object")
++        task = item.get("task")
++        if not isinstance(task, str) or not task.strip():
++            raise ValueError(f"task {index + 1} must contain a non-empty 'task' string")
++        normalized_item = {"task": task.strip()}
++        for key in ("system_prompt", "tools", "skills"):
++            value = item.get(key, "")
++            if not isinstance(value, str):
++                raise ValueError(f"task {index + 1} field '{key}' must be a string")
++            normalized_item[key] = value
++        normalized.append(normalized_item)
++    return normalized
++
++
+ 
+ class AgentToolsIntegration(NewelleExtension):
+     id = "agent_tools"
+@@ -17,11 +75,45 @@ class AgentToolsIntegration(NewelleExtension):
+     def __init__(self, pip_path, extension_path, settings):
+         super().__init__(pip_path, extension_path, settings)
+         self.subagent_results = {}
++        self._subagent_results_lock = threading.Lock()
+ 
+     @property
+     def controller(self):
+         return self.ui_controller.window.controller
+ 
++    @staticmethod
++    def _idle_widget(callback, *args):
++        """Schedule every GTK mutation on the GTK main loop."""
++        def run():
++            callback(*args)
++            return GLib.SOURCE_REMOVE
++        GLib.idle_add(run)
++
++    @staticmethod
++    def _create_widget(factory):
++        """Create a widget on the GTK thread when called by a swarm worker."""
++        context = GLib.MainContext.default()
++        if threading.current_thread() is threading.main_thread() or context.is_owner():
++            return factory()
++        holder = {}
++        done = threading.Event()
++
++        def create():
++            try:
++                holder["widget"] = factory()
++            except Exception as exc:
++                holder["error"] = exc
++            finally:
++                done.set()
++            return GLib.SOURCE_REMOVE
++
++        GLib.idle_add(create)
++        if not done.wait(timeout=10):
++            raise RuntimeError("GTK main loop did not create the subagent widget")
++        if "error" in holder:
++            raise holder["error"]
++        return holder["widget"]
++
+     def _run_subagent(self, task: str, system_prompt: str, tools: str, skills: str = "", tool_uuid=None):
+         """Run a subagent with the given task, system prompt, tools and skills.
+ 
+@@ -31,10 +123,13 @@ class AgentToolsIntegration(NewelleExtension):
+             tools: Comma-separated list of tool names to give the subagent.
+             skills: Comma-separated list of skill names to activate (optional).
+         """
++        if tool_uuid is None:
++            tool_uuid = str(uuid.uuid4())
+         result = ToolResult()
+-        widget = SubagentWidget(task)
++        widget = self._create_widget(lambda: SubagentWidget(task))
+         result.set_widget(widget)
+-        self.subagent_results[tool_uuid] = result
++        with self._subagent_results_lock:
++            self.subagent_results[tool_uuid] = None
+         
+         def run():
+             try:
+@@ -46,7 +141,8 @@ class AgentToolsIntegration(NewelleExtension):
+                 requested_tools = [t.strip() for t in tools.split(",") if t.strip()]
+                 # Add send_result tool
+                 def send_result(content:str):
+-                    self.subagent_results[tool_uuid] = content 
++                    with self._subagent_results_lock:
++                        self.subagent_results[tool_uuid] = content
+                     res = ToolResult()
+                     res.set_output(None)
+                     return res
+@@ -77,7 +173,7 @@ class AgentToolsIntegration(NewelleExtension):
+                 prompts.append("You MUST call send_result tool at the end of the task. Pass any relevant information to the main agent using the content arguement.")
+                 chat_id = ctrl.create_call_chat()
+ 
+-                widget.set_status(_("Running…"))
++                self._idle_widget(widget.set_status, _("Running…"))
+ 
+                 last_message = [""]
+ 
+@@ -86,13 +182,13 @@ class AgentToolsIntegration(NewelleExtension):
+                         last_message.append("\n\n")
+                         last_message.append("")
+                     last_message[-1] = text
+-                    widget.update_message("".join(last_message))
++                    self._idle_widget(widget.update_message, "".join(last_message))
+ 
+                 def on_tool_result(tool_name: str, tool_result: ToolResult):
+-                    widget.set_status(_("Tool: ") + tool_name)
+-                    widget.add_tool_widget(tool_name, tool_result)
++                    self._idle_widget(widget.set_status, _("Tool: ") + tool_name)
++                    self._idle_widget(widget.add_tool_widget, tool_name, tool_result)
+                     if tool_result.requires_interaction:
+-                        widget.expander_row.set_expanded(True)
++                        self._idle_widget(widget.expander_row.set_expanded, True)
+                         def _notify_if_unfocused():
+                             try:
+                                 window = self.ui_controller.window
+@@ -117,20 +213,78 @@ class AgentToolsIntegration(NewelleExtension):
+                     skill_manager=skill_manager,
+                 )
+ 
+-                widget.finish(success=True)
+-                if self.subagent_results[tool_uuid] is None:
++                self._idle_widget(widget.finish, True)
++                with self._subagent_results_lock:
++                    sent_result = self.subagent_results.get(tool_uuid)
++                if sent_result is None:
+                     result.set_output(final if final else "".join(last_message))
+                 else:
+-                    result.set_output(self.subagent_results[tool_uuid])
++                    result.set_output(sent_result)
+ 
+             except Exception as e:
+-                widget.finish(success=False, summary=str(e))
++                self._idle_widget(widget.finish, False, str(e))
+                 result.set_output(f"Subagent error: {e}")
++            finally:
++                with self._subagent_results_lock:
++                    self.subagent_results.pop(tool_uuid, None)
+ 
+         thread = threading.Thread(target=run, daemon=True)
+         thread.start()
+         return result
+ 
++    def _run_swarm(
++        self,
++        tasks,
++        system_prompt: str = "Solve the assigned task independently and report a concise result.",
++        tools: str = "",
++        skills: str = "",
++        concurrency: int = DEFAULT_SWARM_CONCURRENCY,
++    ):
++        """Run independent subagents concurrently with bounded worker count."""
++        result = ToolResult()
++        try:
++            normalized_tasks = parse_swarm_tasks(tasks)
++            worker_count = enforce_swarm_cap(concurrency)
++            container = self._create_widget(
++                lambda: Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
++            )
++            result.set_widget(container)
++        except (TypeError, ValueError, RuntimeError) as exc:
++            result.set_output(f"Swarm input error: {exc}")
++            return result
++
++        def run_one(index_and_task):
++            index, item = index_and_task
++            sub_result = self._run_subagent(
++                task=item["task"],
++                system_prompt=item["system_prompt"] or system_prompt,
++                tools=item["tools"] or tools,
++                skills=item["skills"] or skills,
++                tool_uuid=f"swarm-{uuid.uuid4()}",
++            )
++            if sub_result.widget is not None:
++                self._idle_widget(container.append, sub_result.widget)
++            output = sub_result.get_output()
++            return {
++                "index": index,
++                "task": item["task"],
++                "result": output,
++            }
++
++        def run():
++            try:
++                with ThreadPoolExecutor(
++                    max_workers=worker_count,
++                    thread_name_prefix="nyarch-swarm",
++                ) as executor:
++                    ordered = list(executor.map(run_one, enumerate(normalized_tasks)))
++                result.set_output(json.dumps(ordered, indent=2))
++            except Exception as exc:
++                result.set_output(f"Swarm error: {exc}")
++
++        threading.Thread(target=run, daemon=True, name="nyarch-swarm-coordinator").start()
++        return result
++
+     def _restore_subagent(self, tool_uuid: str, task: str, system_prompt: str, tools: str, skills: str = ""):
+         widget = SubagentWidget(task)
+         output = self.ui_controller.get_tool_result_by_id(tool_uuid)
+@@ -139,7 +293,7 @@ class AgentToolsIntegration(NewelleExtension):
+         r = ToolResult()
+         r.set_widget(widget)
+         r.set_output(output)
+-        return result
++        return r
+ 
+     def _schedule_task(self, task: str, run_at: str = "", cron: str = ""):
+         """Schedule a future agent run in a visible chat."""
+@@ -268,6 +422,67 @@ class AgentToolsIntegration(NewelleExtension):
+                 icon_name="system-run-symbolic",
+                 tools_group=_("Agent"),
+             ),
++            Tool(
++                name="run_swarm",
++                description=(
++                    "Run independent subagent tasks concurrently and return results "
++                    "in input order. Concurrency defaults to 3 and is always capped "
++                    "at 8. Each task may override system_prompt, tools, and skills; "
++                    "normal tool permission interactions remain in effect."
++                ),
++                func=self._run_swarm,
++                schema={
++                    "type": "object",
++                    "properties": {
++                        "tasks": {
++                            "oneOf": [
++                                {
++                                    "type": "array",
++                                    "items": {
++                                        "oneOf": [
++                                            {"type": "string"},
++                                            {
++                                                "type": "object",
++                                                "properties": {
++                                                    "task": {"type": "string"},
++                                                    "system_prompt": {"type": "string"},
++                                                    "tools": {"type": "string"},
++                                                    "skills": {"type": "string"},
++                                                },
++                                                "required": ["task"],
++                                            },
++                                        ]
++                                    },
++                                },
++                                {
++                                    "type": "string",
++                                    "description": "A JSON-encoded task array",
++                                },
++                            ]
++                        },
++                        "system_prompt": {"type": "string"},
++                        "tools": {
++                            "type": "string",
++                            "description": "Comma-separated tool names shared by tasks",
++                        },
++                        "skills": {
++                            "type": "string",
++                            "description": "Comma-separated skill names shared by tasks",
++                        },
++                        "concurrency": {
++                            "type": "integer",
++                            "minimum": 1,
++                            "maximum": MAX_SWARM_CONCURRENCY,
++                            "default": DEFAULT_SWARM_CONCURRENCY,
++                        },
++                    },
++                    "required": ["tasks"],
++                },
++                title="Run Swarm",
++                default_on=True,
++                icon_name="system-run-symbolic",
++                tools_group=_("Agent"),
++            ),
+             Tool(
+                 name="schedule_task",
+                 description=(
+diff --git a/src/integrations/file_editing.py b/src/integrations/file_editing.py
+index 4a6eea6..d5b7696 100644
+--- a/src/integrations/file_editing.py
++++ b/src/integrations/file_editing.py
+@@ -3,6 +3,8 @@ import glob as glob_module
+ import json
+ import os
+ import re
++import errno
++import shutil
+ import threading
+ from gettext import gettext as _
+ from typing import Optional
+@@ -156,6 +158,67 @@ class FileEditingIntegration(NewelleExtension):
+         ])
+         return result
+ 
++    def _check_paths_and_execute(self, file_paths: list[str], operation: str, execute_fn):
++        """Apply the existing permission policy to every affected path."""
++        unique_paths = list(dict.fromkeys(file_paths))
++        blocked = [
++            path for path in unique_paths
++            if self._get_permission_mode(path, operation) == "block"
++        ]
++        if blocked:
++            result = ToolResult()
++            result.set_output(
++                f"Error: {operation.capitalize()} access is blocked by file "
++                f"permission settings for: {', '.join(blocked)}"
++            )
++            return result
++
++        ask_paths = [
++            path for path in unique_paths
++            if self._get_permission_mode(path, operation) == "ask"
++        ]
++        if not ask_paths:
++            return execute_fn()
++
++        result = ToolResult(requires_interaction=True)
++        display_paths = "\n".join(ask_paths)
++
++        def on_accepted():
++            try:
++                inner = execute_fn()
++                result.set_output(inner.get_output())
++            except Exception as exc:
++                result.set_output(f"Error: {exc}")
++
++        def on_rejected(_widget=None):
++            result.set_output(
++                f"The user rejected the {operation} operation on: "
++                f"{', '.join(ask_paths)}"
++            )
++
++        from gi.repository import Gtk
++
++        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
++        confirm = FilePermissionConfirmWidget(
++            file_path=display_paths,
++            operation=operation,
++            run_callback=on_accepted,
++        )
++        confirm.connect("rejected", on_rejected)
++        box.append(confirm)
++        result.set_widget(box)
++        result.set_intreaction_options([
++            InteractionOption(_("Accept"), on_accepted),
++            InteractionOption(_("Reject"), lambda: on_rejected()),
++        ])
++        return result
++
++    @staticmethod
++    def _result_with_output(output: str) -> ToolResult:
++        result = ToolResult()
++        result.set_output(output)
++        return result
++
+     def _get_open_in_editor_callback(self, file_path: str = None):
+         """Return callback to open file in internal editor, or None if unavailable.
+ 
+@@ -635,6 +698,135 @@ class FileEditingIntegration(NewelleExtension):
+         except Exception:
+             return False
+ 
++    def delete_file(self, file_path: str):
++        """Delete one file after applying the configured write policy."""
++        if not isinstance(file_path, str) or not os.path.isabs(file_path):
++            return self._result_with_output(
++                f"Error: Path must be absolute. Relative paths are not supported: {file_path}"
++            )
++        return self._check_paths_and_execute(
++            [file_path],
++            "write",
++            lambda: self._delete_file_impl(file_path),
++        )
++
++    def _delete_file_impl(self, file_path: str):
++        if not os.path.lexists(file_path):
++            return self._result_with_output(f"Error: File does not exist: {file_path}")
++        if os.path.islink(file_path) and os.path.isdir(file_path):
++            return self._result_with_output(
++                f"Error: Refusing to delete a symlink to a directory: {file_path}"
++            )
++        if os.path.isdir(file_path):
++            return self._result_with_output(
++                f"Error: Refusing to delete a directory; delete_file only removes files: {file_path}"
++            )
++        if not os.path.isfile(file_path):
++            return self._result_with_output(
++                f"Error: Path is not a regular file: {file_path}"
++            )
++        try:
++            os.remove(file_path)
++            return self._result_with_output(f"Successfully deleted file: {file_path}")
++        except OSError as exc:
++            return self._result_with_output(
++                f"Error deleting file {file_path}: {exc}"
++            )
++
++    def move_file(self, source_path: str, destination_path: str, overwrite: bool = False):
++        """Move one file after checking write policy for source and destination."""
++        for label, path in (
++            ("Source", source_path),
++            ("Destination", destination_path),
++        ):
++            if not isinstance(path, str) or not os.path.isabs(path):
++                return self._result_with_output(
++                    f"Error: {label} path must be absolute: {path}"
++                )
++        return self._check_paths_and_execute(
++            [source_path, destination_path],
++            "write",
++            lambda: self._move_file_impl(source_path, destination_path, overwrite),
++        )
++
++    def _move_file_impl(
++        self,
++        source_path: str,
++        destination_path: str,
++        overwrite: bool = False,
++    ):
++        if not os.path.lexists(source_path):
++            return self._result_with_output(
++                f"Error: Source file does not exist: {source_path}"
++            )
++        if os.path.islink(source_path) and os.path.isdir(source_path):
++            return self._result_with_output(
++                f"Error: Refusing to move a symlink to a directory: {source_path}"
++            )
++        if os.path.isdir(source_path) or not os.path.isfile(source_path):
++            return self._result_with_output(
++                f"Error: Source path is not a regular file: {source_path}"
++            )
++
++        parent = os.path.dirname(destination_path)
++        if not os.path.isdir(parent):
++            return self._result_with_output(
++                f"Error: Destination parent directory does not exist: {parent}"
++            )
++        if os.path.lexists(destination_path):
++            if os.path.isdir(destination_path):
++                return self._result_with_output(
++                    f"Error: Destination is a directory: {destination_path}"
++                )
++            if not overwrite:
++                return self._result_with_output(
++                    f"Error: Destination already exists; set overwrite=true to replace it: {destination_path}"
++                )
++
++        try:
++            if overwrite:
++                try:
++                    os.replace(source_path, destination_path)
++                except OSError as exc:
++                    if exc.errno != errno.EXDEV:
++                        raise
++                    shutil.copy2(source_path, destination_path)
++                    os.remove(source_path)
++            else:
++                try:
++                    os.link(source_path, destination_path, follow_symlinks=False)
++                    os.unlink(source_path)
++                except OSError as exc:
++                    if exc.errno != errno.EXDEV:
++                        raise
++                    destination_fd = os.open(
++                        destination_path,
++                        os.O_WRONLY | os.O_CREAT | os.O_EXCL,
++                        os.stat(source_path).st_mode & 0o777,
++                    )
++                    try:
++                        with open(source_path, "rb") as source:
++                            with os.fdopen(destination_fd, "wb") as destination:
++                                destination_fd = -1
++                                shutil.copyfileobj(source, destination)
++                        shutil.copystat(source_path, destination_path)
++                        os.remove(source_path)
++                    except Exception:
++                        if destination_fd >= 0:
++                            os.close(destination_fd)
++                        try:
++                            os.remove(destination_path)
++                        except OSError:
++                            pass
++                        raise
++            return self._result_with_output(
++                f"Successfully moved file: {source_path} -> {destination_path}"
++            )
++        except OSError as exc:
++            return self._result_with_output(
++                f"Error moving file {source_path} to {destination_path}: {exc}"
++            )
++
+     def glob(self, pattern: str, path: Optional[str] = None):
+         """Search for files matching a glob pattern, with permission checking."""
+         search_dir = path if path else os.getcwd()
+@@ -1205,6 +1397,32 @@ class FileEditingIntegration(NewelleExtension):
+                 icon_name="document-edit-symbolic",
+                 tools_group="File Operations"
+             ),
++            Tool(
++                name="delete_file",
++                description=(
++                    "Delete one file at an absolute path. Directories and "
++                    "symlinks to directories are always refused. The configured "
++                    "write permission policy is enforced before deletion."
++                ),
++                func=self.delete_file,
++                title="Delete File",
++                default_on=True,
++                icon_name="user-trash-symbolic",
++                tools_group="File Operations",
++            ),
++            Tool(
++                name="move_file",
++                description=(
++                    "Move one file between absolute paths. Both paths require "
++                    "write permission. Existing destinations are refused unless "
++                    "overwrite=true; directories are never moved."
++                ),
++                func=self.move_file,
++                title="Move File",
++                default_on=True,
++                icon_name="folder-move-symbolic",
++                tools_group="File Operations",
++            ),
+             Tool(
+                 name="glob",
+                 description="Search for files matching a glob pattern. Supports standard glob patterns like '*.py' and recursive patterns like '**/*.txt'. If path is not specified, searches in the current working directory.",
+diff --git a/src/integrations/git_forge.py b/src/integrations/git_forge.py
+new file mode 100644
+index 0000000..a58ee27
+--- /dev/null
++++ b/src/integrations/git_forge.py
+@@ -0,0 +1,352 @@
++import json
++import os
++import re
++import subprocess
++from urllib.parse import quote, urlencode, urlsplit, urlunsplit
++from urllib.request import Request, urlopen
++
++from ..extensions import NewelleExtension
++from ..tools import Tool, ToolResult
++
++
++MAX_GIT_OUTPUT_BYTES = 256 * 1024
++MAX_HTTP_RESPONSE_BYTES = 1024 * 1024
++GIT_TIMEOUT_SECONDS = 15
++HTTP_TIMEOUT_SECONDS = 10
++MAX_ISSUES = 100
++SUPPORTED_PROVIDERS = ("github", "gitlab", "gitea")
++_REPO_SEGMENT = re.compile(r"^[A-Za-z0-9_.-]+$")
++_TOKEN_SETTINGS = {
++    "github": ("GITHUB_TOKEN", "GITHUB_BASE_URL"),
++    "gitlab": ("GITLAB_TOKEN", "GITLAB_BASE_URL"),
++    "gitea": ("GIT_FORGE_TOKEN", "GIT_FORGE_BASE_URL"),
++}
++_DEFAULT_TRUSTED_BASE_URLS = {
++    "github": "https://api.github.com",
++    "gitlab": "https://gitlab.com",
++}
++
++
++def validate_provider(provider: str) -> str:
++    if not isinstance(provider, str) or provider.lower() not in SUPPORTED_PROVIDERS:
++        raise ValueError(
++            f"provider must be one of: {', '.join(SUPPORTED_PROVIDERS)}"
++        )
++    return provider.lower()
++
++
++def validate_repo(repo: str) -> str:
++    if not isinstance(repo, str) or len(repo) > 300:
++        raise ValueError("repo must be a forge repository path")
++    segments = repo.strip("/").split("/")
++    if len(segments) < 2 or any(
++        segment in ("", ".", "..") or not _REPO_SEGMENT.fullmatch(segment)
++        for segment in segments
++    ):
++        raise ValueError("repo must contain valid owner/name path segments")
++    return "/".join(segments)
++
++
++def normalize_origin(url: str) -> tuple[str, str, int]:
++    """Return a canonical scheme/host/port origin for a credential-free URL."""
++    if not isinstance(url, str) or not url.strip():
++        raise ValueError("URL must be a non-empty string")
++    parsed = urlsplit(url.strip())
++    if (
++        parsed.scheme.lower() not in ("http", "https")
++        or not parsed.hostname
++        or parsed.username is not None
++        or parsed.password is not None
++        or any(character.isspace() or character == "\\" for character in parsed.netloc)
++    ):
++        raise ValueError("URL must have a safe http(s) origin without credentials")
++    try:
++        port = parsed.port
++        hostname = parsed.hostname.rstrip(".").encode("idna").decode("ascii").lower()
++    except (UnicodeError, ValueError) as exc:
++        raise ValueError("URL contains an invalid host or port") from exc
++    if not hostname:
++        raise ValueError("URL contains an invalid host")
++    if port is None:
++        port = 443 if parsed.scheme.lower() == "https" else 80
++    return parsed.scheme.lower(), hostname, port
++
++
++def validate_base_url(provider: str, base_url: str | None = None) -> str:
++    provider = validate_provider(provider)
++    defaults = {
++        "github": "https://api.github.com",
++        "gitlab": "https://gitlab.com",
++    }
++    value = (base_url or defaults.get(provider, "")).strip().rstrip("/")
++    if not value:
++        raise ValueError("base_url is required for a Gitea-compatible server")
++    parsed = urlsplit(value)
++    if (
++        parsed.query
++        or parsed.fragment
++    ):
++        raise ValueError(
++            "base_url must be an http(s) URL without credentials, query, or fragment"
++        )
++    normalize_origin(value)
++    return urlunsplit((parsed.scheme, parsed.netloc, parsed.path.rstrip("/"), "", ""))
++
++
++def trusted_origins(provider: str, environment=None) -> set[tuple[str, str, int]]:
++    """Return provider origins that may receive an environment token."""
++    provider = validate_provider(provider)
++    environment = os.environ if environment is None else environment
++    origins = set()
++    default_base_url = _DEFAULT_TRUSTED_BASE_URLS.get(provider)
++    if default_base_url:
++        origins.add(normalize_origin(default_base_url))
++    configured_base_url = environment.get(_TOKEN_SETTINGS[provider][1], "")
++    if configured_base_url:
++        try:
++            origins.add(normalize_origin(configured_base_url))
++        except ValueError:
++            # An invalid or credential-bearing trust URL never enables credentials.
++            pass
++    return origins
++
++
++def may_attach_token(provider: str, request_url: str, environment=None) -> bool:
++    """Whether request_url exactly matches a trusted provider origin."""
++    try:
++        return normalize_origin(request_url) in trusted_origins(provider, environment)
++    except ValueError:
++        return False
++
++
++def build_issues_url(
++    provider: str,
++    repo: str,
++    base_url: str | None = None,
++    state: str = "open",
++    limit: int = 20,
++) -> str:
++    provider = validate_provider(provider)
++    repo = validate_repo(repo)
++    base_url = validate_base_url(provider, base_url)
++    if state not in ("open", "closed", "all"):
++        raise ValueError("state must be open, closed, or all")
++    try:
++        limit = max(1, min(int(limit), MAX_ISSUES))
++    except (TypeError, ValueError) as exc:
++        raise ValueError("limit must be an integer") from exc
++
++    if provider == "github":
++        path = f"/repos/{quote(repo, safe='/')}/issues"
++        query = {"state": state, "per_page": limit}
++    elif provider == "gitlab":
++        api_base = base_url if base_url.endswith("/api/v4") else base_url + "/api/v4"
++        path = f"/projects/{quote(repo, safe='')}/issues"
++        query = {
++            "state": {"open": "opened", "closed": "closed", "all": "all"}[state],
++            "per_page": limit,
++        }
++        return api_base + path + "?" + urlencode(query)
++    else:
++        api_base = base_url if base_url.endswith("/api/v1") else base_url + "/api/v1"
++        path = f"/repos/{quote(repo, safe='/')}/issues"
++        query = {"state": state, "limit": limit}
++        return api_base + path + "?" + urlencode(query)
++    return base_url + path + "?" + urlencode(query)
++
++
++def parse_issues_response(provider: str, payload: bytes) -> list[dict]:
++    provider = validate_provider(provider)
++    try:
++        data = json.loads(payload.decode("utf-8"))
++    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
++        raise ValueError("forge returned invalid JSON") from exc
++    if not isinstance(data, list):
++        raise ValueError("forge returned an unexpected issue response")
++
++    issues = []
++    for item in data:
++        if not isinstance(item, dict):
++            continue
++        if provider == "github" and "pull_request" in item:
++            continue
++        number = item.get("iid") if provider == "gitlab" else item.get("number")
++        title = item.get("title")
++        if not isinstance(number, int) or not isinstance(title, str):
++            continue
++        issues.append(
++            {
++                "number": number,
++                "title": title,
++                "state": item.get("state", ""),
++                "url": item.get("web_url") if provider == "gitlab" else item.get("html_url", ""),
++                "comments": item.get("user_notes_count", 0)
++                if provider == "gitlab"
++                else item.get("comments", 0),
++            }
++        )
++    return issues
++
++
++class GitForgeIntegration(NewelleExtension):
++    """Read-only local Git and remote issue-listing tools."""
++
++    id = "git_forge"
++    name = "Git Forge"
++
++    @staticmethod
++    def _result(output: str) -> ToolResult:
++        result = ToolResult()
++        result.set_output(output)
++        return result
++
++    @staticmethod
++    def _validate_local_path(path: str) -> str:
++        if not isinstance(path, str) or not os.path.isabs(path):
++            raise ValueError("path must be absolute")
++        path = os.path.realpath(path)
++        if not os.path.isdir(path):
++            raise ValueError("path must be an existing directory")
++        return path
++
++    def _run_git(self, path: str, arguments: list[str]) -> ToolResult:
++        try:
++            path = self._validate_local_path(path)
++            completed = subprocess.run(
++                [
++                    "git",
++                    "--no-optional-locks",
++                    "-c",
++                    "core.fsmonitor=false",
++                    "-c",
++                    "diff.external=",
++                    "-C",
++                    path,
++                    *arguments,
++                ],
++                stdin=subprocess.DEVNULL,
++                stdout=subprocess.PIPE,
++                stderr=subprocess.PIPE,
++                timeout=GIT_TIMEOUT_SECONDS,
++                check=False,
++            )
++            raw = completed.stdout if completed.returncode == 0 else completed.stderr
++            truncated = len(raw) > MAX_GIT_OUTPUT_BYTES
++            text = raw[:MAX_GIT_OUTPUT_BYTES].decode("utf-8", errors="replace").rstrip()
++            if truncated:
++                text += f"\n\n[output truncated at {MAX_GIT_OUTPUT_BYTES} bytes]"
++            if completed.returncode != 0:
++                return self._result(
++                    f"Git command failed with exit code {completed.returncode}: {text}"
++                )
++            return self._result(text or "(no output)")
++        except subprocess.TimeoutExpired:
++            return self._result(
++                f"Git command timed out after {GIT_TIMEOUT_SECONDS} seconds"
++            )
++        except (OSError, ValueError) as exc:
++            return self._result(f"Git error: {exc}")
++
++    def git_status(self, path: str):
++        return self._run_git(path, ["status", "--short", "--branch"])
++
++    def git_diff(self, path: str, staged: bool = False):
++        arguments = ["diff", "--no-ext-diff", "--no-textconv", "--no-color"]
++        if staged:
++            arguments.append("--cached")
++        return self._run_git(path, arguments)
++
++    def git_log(self, path: str, limit: int = 20):
++        try:
++            limit = max(1, min(int(limit), 100))
++        except (TypeError, ValueError):
++            return self._result("Git error: limit must be an integer")
++        return self._run_git(
++            path,
++            ["log", f"--max-count={limit}", "--date=iso-strict", "--format=%h %ad %s"],
++        )
++
++    def list_issues(
++        self,
++        provider: str,
++        repo: str,
++        base_url: str = "",
++        state: str = "open",
++        limit: int = 20,
++    ):
++        token = None
++        try:
++            provider = validate_provider(provider)
++            configured_base_url = os.environ.get(_TOKEN_SETTINGS[provider][1], "")
++            effective_base_url = base_url or configured_base_url or None
++            url = build_issues_url(provider, repo, effective_base_url, state, limit)
++            token = os.environ.get(_TOKEN_SETTINGS[provider][0])
++            headers = {
++                "Accept": "application/json",
++                "User-Agent": "NyarchAssistant-GitForge/1",
++            }
++            request = Request(url, headers=headers, method="GET")
++            if token and may_attach_token(provider, url):
++                if provider == "gitlab":
++                    request.add_unredirected_header("PRIVATE-TOKEN", token)
++                elif provider == "gitea":
++                    request.add_unredirected_header("Authorization", f"token {token}")
++                else:
++                    request.add_unredirected_header("Authorization", f"Bearer {token}")
++            with urlopen(request, timeout=HTTP_TIMEOUT_SECONDS) as response:
++                payload = response.read(MAX_HTTP_RESPONSE_BYTES + 1)
++            if len(payload) > MAX_HTTP_RESPONSE_BYTES:
++                raise ValueError(
++                    f"forge response exceeds {MAX_HTTP_RESPONSE_BYTES} bytes"
++                )
++            issues = parse_issues_response(provider, payload)
++            return self._result(json.dumps(issues, indent=2))
++        except Exception as exc:
++            error = str(exc)
++            if token:
++                error = error.replace(token, "[REDACTED]")
++            return self._result(f"Forge error: {error}")
++
++    def get_tools(self) -> list:
++        group = "Git Forge (Read Only)"
++        return [
++            Tool(
++                name="git_status",
++                description="Show read-only local git status for an absolute repository path.",
++                func=self.git_status,
++                title="Git Status",
++                default_on=True,
++                icon_name="vcs-normal-symbolic",
++                tools_group=group,
++            ),
++            Tool(
++                name="git_diff",
++                description="Show an unstaged or staged local git diff without external diff commands.",
++                func=self.git_diff,
++                title="Git Diff",
++                default_on=True,
++                icon_name="vcs-diff-symbolic",
++                tools_group=group,
++            ),
++            Tool(
++                name="git_log",
++                description="Show a bounded read-only local git commit log.",
++                func=self.git_log,
++                title="Git Log",
++                default_on=True,
++                icon_name="vcs-normal-symbolic",
++                tools_group=group,
++            ),
++            Tool(
++                name="list_forge_issues",
++                description=(
++                    "List issues from GitHub, GitLab, or a Gitea-compatible server. "
++                    "Uses environment tokens only and never mutates the remote."
++                ),
++                func=self.list_issues,
++                title="List Forge Issues",
++                default_on=True,
++                icon_name="dialog-information-symbolic",
++                tools_group=group,
++            ),
++        ]
+diff --git a/src/main.py b/src/main.py
+index 223794e..eae2a83 100644
+--- a/src/main.py
++++ b/src/main.py
+@@ -332,8 +332,12 @@ class MyApp(Adw.Application):
+             self.mini_win.close()
+         if all(element.poll() is not None for element in self.win.streams):
+             settings = Gio.Settings.new('moe.nyarchlinux.assistant')
+-            settings.set_int("window-width", self.win.get_width())
+-            settings.set_int("window-height", self.win.get_height())
++            if self.win.compact_mode:
++                settings.set_int("compact-window-width", self.win.get_width())
++                settings.set_int("compact-window-height", self.win.get_height())
++            else:
++                settings.set_int("window-width", self.win.get_width())
++                settings.set_int("window-height", self.win.get_height())
+             self.win.controller.close_application()
+             return False
+         else:
+diff --git a/src/meson.build b/src/meson.build
+index 2ada923..ba369b2 100644
+--- a/src/meson.build
++++ b/src/meson.build
+@@ -53,6 +53,7 @@ integrations_sources = [
+   'integrations/skills.py',
+   'integrations/agent_tools.py',
+   'integrations/file_editing.py',
++  'integrations/git_forge.py',
+   'integrations/todo_list.py',
+   'integrations/arch.py',
+ ]
+@@ -136,8 +137,10 @@ llm_sources = [
+   'handlers/llm/mistral_handler.py',
+   'handlers/llm/newelle_handler.py',
+   'handlers/llm/ollama_handler.py',
++  'handlers/llm/ollama_catalog.py',
+   'handlers/llm/ollama_cloud_handler.py',
+   'handlers/llm/openai_handler.py',
++  'handlers/llm/kimi_handler.py',
+   'handlers/llm/openrouter_handler.py',
+   'handlers/llm/deepseek_handler.py',
+   'handlers/llm/llama_cpp_handler.py',
+@@ -247,6 +250,9 @@ utility_sources = [
+   'utility/force_sync.py',
+   'utility/context_manager.py',
+   'utility/command_permissions.py',
++  'utility/compact.py',
++  'utility/language_accent.py',
++  'utility/lifecycle.py',
+ ]
+ 
+ avatar_sources = [
+diff --git a/src/ui/settings.py b/src/ui/settings.py
+index 995764e..91d3677 100644
+--- a/src/ui/settings.py
++++ b/src/ui/settings.py
+@@ -162,6 +162,19 @@ class Settings(Adw.PreferencesWindow):
+         for tts_key in AVAILABLE_TTS:
+            row = self.build_row(AVAILABLE_TTS, tts_key, selected, group) 
+            tts_program.add_row(row)
++        automatic_voice_row = Adw.ActionRow(
++            title=_("Automatic language and accent"),
++            subtitle=_("Select a matching TTS voice for each spoken message"),
++        )
++        automatic_voice_switch = Gtk.Switch(valign=Gtk.Align.CENTER)
++        automatic_voice_row.add_suffix(automatic_voice_switch)
++        self.settings.bind(
++            "tts-auto-language",
++            automatic_voice_switch,
++            "active",
++            Gio.SettingsBindFlags.DEFAULT,
++        )
++        self.Voicegroup.add(automatic_voice_row)
+         # Build the Translators settings
+         group = Gtk.CheckButton()
+         selected = self.settings.get_string("translator")
+@@ -374,6 +387,44 @@ class Settings(Adw.PreferencesWindow):
+         self.interface = Adw.PreferencesGroup(title=_('Interface'))
+         self.general_page.add(self.interface)
+ 
++        compact_row = Adw.ExpanderRow(
++            title=_("Compact mode"),
++            subtitle=_("Use a phone-like window with overlay side panels (applied on next launch)"),
++        )
++        compact_switch = Gtk.Switch(valign=Gtk.Align.CENTER)
++        compact_row.add_action(compact_switch)
++        self.settings.bind(
++            "compact-mode",
++            compact_switch,
++            "active",
++            Gio.SettingsBindFlags.DEFAULT,
++        )
++
++        compact_dimensions = (
++            ("compact-window-width", _("Window Width"), 360, 900),
++            ("compact-window-height", _("Window Height"), 480, 1400),
++            ("compact-avatar-width", _("Avatar Width"), 96, 300),
++        )
++        for key, title, lower, upper in compact_dimensions:
++            dimension_row = Adw.SpinRow(
++                title=title,
++                adjustment=Gtk.Adjustment(
++                    lower=lower,
++                    upper=upper,
++                    value=self.settings.get_int(key),
++                    step_increment=1,
++                    page_increment=10,
++                ),
++            )
++            dimension_row.connect(
++                "notify::value",
++                lambda spin, _param, setting_key=key: self.settings.set_int(
++                    setting_key, int(spin.get_value())
++                ),
++            )
++            compact_row.add_row(dimension_row)
++        self.interface.add(compact_row)
++
+         row = Adw.ActionRow(title=_("Interface Size"), subtitle=_("Adjust the size of the interface"))
+         spin = Adw.SpinRow(adjustment=Gtk.Adjustment(lower=100, upper=250, value=self.controller.newelle_settings.zoom, page_increment=20, step_increment=10))
+         row.add_suffix(spin)
+diff --git a/src/ui/widgets/chat_history.py b/src/ui/widgets/chat_history.py
+index a4a5e04..0134b06 100644
+--- a/src/ui/widgets/chat_history.py
++++ b/src/ui/widgets/chat_history.py
+@@ -34,7 +34,8 @@ class ChatHistory(Gtk.Box):
+         
+         # Lazy loading state
+         self.lazy_load_enabled = True
+-        self.lazy_load_batch_size = 10  # Number of messages to load initially and per batch
++        root_window = getattr(window, "window", window)
++        self.lazy_load_batch_size = getattr(root_window, "lazy_load_batch_size", 10)
+         self.lazy_load_threshold = 0.1  # Load more when within 10% of top/bottom
+         self.lazy_loaded_start = 0  # First loaded message index
+         self.lazy_loaded_end = 0  # Last loaded message index (exclusive)
+diff --git a/src/utility/compact.py b/src/utility/compact.py
+new file mode 100644
+index 0000000..2626c1e
+--- /dev/null
++++ b/src/utility/compact.py
+@@ -0,0 +1,52 @@
++"""Pure configuration helpers for the compact window layout."""
++
++from dataclasses import dataclass
++
++
++@dataclass(frozen=True)
++class WindowLayout:
++    width: int
++    height: int
++    chat_min_width: int
++    history_width: int
++    canvas_width: int
++    avatar_width: int
++    lazy_load_batch_size: int
++
++
++def _positive(value: int, fallback: int) -> int:
++    return value if isinstance(value, int) and value > 0 else fallback
++
++
++def resolve_window_layout(
++    compact_mode: bool,
++    window_width: int,
++    window_height: int,
++    compact_width: int,
++    compact_height: int,
++    compact_avatar_width: int,
++) -> WindowLayout:
++    """Resolve window and pane dimensions while preserving normal defaults."""
++    if not compact_mode:
++        return WindowLayout(
++            width=_positive(window_width, 1400),
++            height=_positive(window_height, 800),
++            chat_min_width=450,
++            history_width=300,
++            canvas_width=420,
++            avatar_width=400,
++            lazy_load_batch_size=10,
++        )
++
++    width = max(360, _positive(compact_width, 420))
++    height = max(480, _positive(compact_height, 720))
++    avatar_width = min(max(96, _positive(compact_avatar_width, 132)), width // 2)
++    return WindowLayout(
++        width=width,
++        height=height,
++        chat_min_width=max(240, width - avatar_width),
++        history_width=min(320, width - 40),
++        canvas_width=min(360, width - 24),
++        avatar_width=avatar_width,
++        lazy_load_batch_size=5,
++    )
+diff --git a/src/utility/language_accent.py b/src/utility/language_accent.py
+new file mode 100644
+index 0000000..9cc20ba
+--- /dev/null
++++ b/src/utility/language_accent.py
+@@ -0,0 +1,126 @@
++"""Small, dependency-free language and TTS voice resolver."""
++
++import re
++import unicodedata
++from collections.abc import Iterable
++
++
++_WORDS = {
++    "en": {
++        "a", "and", "are", "can", "do", "for", "from", "good", "hello", "how",
++        "i", "in", "is", "it", "morning", "my", "of", "please", "that", "the",
++        "this", "to", "was", "we", "what", "with", "you", "your",
++    },
++    "fr": {
++        "alors", "avec", "bonjour", "ce", "comment", "dans", "de", "des",
++        "du", "elle", "est", "et", "je", "la", "le", "les", "mais", "merci",
++        "nous", "pas", "pour", "que", "qui", "salut", "sont", "un", "une", "vous",
++    },
++    "es": {
++        "buenos", "como", "con", "de", "días", "el", "en", "es", "esta",
++        "gracias", "hola", "la", "las", "los", "para", "por", "que", "se",
++        "un", "una", "y",
++    },
++    "de": {
++        "aber", "auf", "das", "der", "die", "ein", "eine", "für", "guten",
++        "hallo", "ich", "ist", "mit", "morgen", "nicht", "sie", "und", "von",
++        "was", "wie", "wir", "zu",
++    },
++    "it": {
++        "buongiorno", "che", "ciao", "come", "con", "di", "e", "grazie", "il",
++        "in", "la", "le", "ma", "non", "per", "sono", "un", "una",
++    },
++}
++
++_DISTINCTIVE = {
++    "en": {"good", "hello", "please", "the", "this", "what", "with", "your"},
++    "fr": {"avec", "bonjour", "comment", "des", "est", "merci", "pour", "salut", "une", "vous"},
++    "es": {"buenos", "como", "días", "esta", "gracias", "hola", "las", "los", "una"},
++    "de": {"aber", "auf", "das", "der", "die", "für", "guten", "hallo", "ich", "morgen", "nicht", "und"},
++    "it": {"buongiorno", "ciao", "come", "grazie", "sono"},
++}
++
++_ACCENTS = {
++    "fr": set("àâçéèêëîïôùûüÿœæ"),
++    "es": set("áéíóúüñ¿¡"),
++    "de": set("äöüß"),
++    "it": set("àèéìíîòóùú"),
++}
++
++_VOICE_PREFERENCES = {
++    "en": ("en-gb", "en-us", "en"),
++    "fr": ("fr-fr", "fr"),
++    "es": ("es-es", "es-mx", "es-us", "es"),
++    "de": ("de-de", "de-at", "de-ch", "de"),
++    "it": ("it-it", "it"),
++}
++
++
++def detect_language(text: str) -> str | None:
++    """Return a likely ISO 639-1 language code, or ``None`` if uncertain."""
++    if not isinstance(text, str):
++        return None
++
++    normalized = unicodedata.normalize("NFC", text).casefold()
++    tokens = re.findall(r"[^\W\d_]+", normalized, flags=re.UNICODE)
++    if not tokens:
++        return None
++
++    scores = {}
++    for language, words in _WORDS.items():
++        score = sum(1 for token in tokens if token in words)
++        score += sum(2 for token in tokens if token in _DISTINCTIVE[language])
++        if language in _ACCENTS:
++            score += sum(2 for character in normalized if character in _ACCENTS[language])
++        scores[language] = score
++
++    # Apostrophe contractions provide useful French evidence without requiring
++    # an external language model.
++    scores["fr"] += 2 * len(re.findall(r"\b(?:c|d|j|l|n|qu|s|t)'", normalized))
++    scores["en"] += 2 * len(re.findall(r"\b(?:i|you|we|they|it|do|does|is|are|was|were)n't\b", normalized))
++
++    ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
++    best_language, best_score = ranked[0]
++    second_score = ranked[1][1]
++    if best_score < 3:
++        return None
++    if best_score == second_score:
++        return None
++    return best_language
++
++
++def _voice_ids(voices: Iterable) -> tuple[str, ...]:
++    result = []
++    for voice in voices or ():
++        voice_id = voice[1] if isinstance(voice, (tuple, list)) and len(voice) > 1 else voice
++        if isinstance(voice_id, str) and voice_id:
++            result.append(voice_id)
++    return tuple(result)
++
++
++def _matches_locale(voice_id: str, locale: str) -> bool:
++    normalized = voice_id.casefold().replace("_", "-")
++    locale = locale.casefold()
++    return normalized == locale or normalized.startswith(locale + "-")
++
++
++def resolve_voice_for_text(text: str, voices: Iterable, configured_voice: str | None) -> str | None:
++    """Choose a voice matching *text* without changing the configured voice.
++
++    The configured voice wins when it already matches the detected language.
++    If detection is uncertain or no matching voice exists, it is returned
++    unchanged.
++    """
++    language = detect_language(text)
++    available = _voice_ids(voices)
++    if language is None or not available:
++        return configured_voice
++
++    if isinstance(configured_voice, str) and _matches_locale(configured_voice, language):
++        return configured_voice
++
++    for locale in _VOICE_PREFERENCES[language]:
++        for voice_id in available:
++            if _matches_locale(voice_id, locale):
++                return voice_id
++    return configured_voice
+diff --git a/src/utility/lifecycle.py b/src/utility/lifecycle.py
+new file mode 100644
+index 0000000..66eb4e1
+--- /dev/null
++++ b/src/utility/lifecycle.py
+@@ -0,0 +1,23 @@
++"""Small lifecycle helpers that do not depend on GTK."""
++
++
++class LifecycleCleanupGuard:
++    """Allow one cleanup claim for each activated resource lifecycle."""
++
++    def __init__(self):
++        self._active_resources = []
++
++    def activate(self, resource):
++        """Mark *resource* active, retaining object-identity semantics."""
++        if resource is None:
++            return
++        if not any(active is resource for active in self._active_resources):
++            self._active_resources.append(resource)
++
++    def claim_cleanup(self, resource) -> bool:
++        """Return true once for an active resource, then mark it inactive."""
++        for index, active in enumerate(self._active_resources):
++            if active is resource:
++                self._active_resources.pop(index)
++                return True
++        return False
+diff --git a/src/window.py b/src/window.py
+index 4af2dd9..6dc1c68 100644
+--- a/src/window.py
++++ b/src/window.py
+@@ -49,6 +49,8 @@ from .utility.profile_settings import get_settings_dict, get_settings_dict_by_gr
+ from .utility.audio_recorder import AudioRecorder
+ from .utility.media import extract_supported_files
+ from .utility.system import is_flatpak
++from .utility.compact import resolve_window_layout
++from .utility.lifecycle import LifecycleCleanupGuard
+ from .ui.screenrecorder import ScreenRecorder
+ from .handlers import ErrorSeverity
+ from .controller import NewelleController, ReloadType, NewelleSettings
+@@ -65,13 +67,27 @@ class MainWindow(Adw.ApplicationWindow):
+         self.first_load = True
+         super().__init__(*args, **kwargs)
+         self.app = self.get_application()
++        self.controller = NewelleController(sys.path)
++        self.settings = self.controller.settings
++        self._avatar_cleanup_guard = LifecycleCleanupGuard()
++        self.compact_mode = self.settings.get_boolean("compact-mode")
++        self.window_layout = resolve_window_layout(
++            self.compact_mode,
++            self.settings.get_int("window-width"),
++            self.settings.get_int("window-height"),
++            self.settings.get_int("compact-window-width"),
++            self.settings.get_int("compact-window-height"),
++            self.settings.get_int("compact-avatar-width"),
++        )
++        if self.compact_mode:
++            self.add_css_class("compact-mode")
+         # Main program block - On the right Canvas tabs, Chat as content
+         self.app_stack = Gtk.Stack(transition_duration=500, transition_type=Gtk.StackTransitionType.SLIDE_UP)
+         self.main_program_block = Adw.OverlaySplitView(
+             enable_hide_gesture=False,
+             sidebar_position=Gtk.PackType.END,
+-            min_sidebar_width=420,
+-            max_sidebar_width=10000
++            min_sidebar_width=self.window_layout.canvas_width,
++            max_sidebar_width=self.window_layout.canvas_width if self.compact_mode else 10000,
+         )
+ 
+         self.avatar_flap = Adw.Flap(flap_position=Gtk.PackType.END, modal=False, swipe_to_close=False, swipe_to_open=False)
+@@ -79,11 +95,9 @@ class MainWindow(Adw.ApplicationWindow):
+         self.app_stack.add_named(self.avatar_flap, "main")
+         self.app_stack.add_named(self.build_splashscreen(), "splashscreen")
+         self.app_stack.set_visible_child_name("splashscreen")
+-        self.controller = NewelleController(sys.path)
+-        self.settings = self.controller.settings
+         # Set window default size
+ 
+-        self.set_default_size(self.settings.get_int("window-width"), self.settings.get_int("window-height"))
++        self.set_default_size(self.window_layout.width, self.window_layout.height)
+         
+         self.set_content(self.app_stack)
+         GLib.idle_add(self.build_main_window)
+@@ -104,6 +118,8 @@ class MainWindow(Adw.ApplicationWindow):
+         breakpoint = Adw.Breakpoint(condition=Adw.BreakpointCondition.new_length(Adw.BreakpointConditionLengthType.MAX_WIDTH, 1000, Adw.LengthUnit.PX))
+         breakpoint.add_setter(self.main_program_block, "collapsed", True)
+         self.add_breakpoint(breakpoint)
++        if self.compact_mode:
++            self.main_program_block.set_collapsed(True)
+        
+         # Streams
+         self.check_streams = {"folder": False, "chat": False}
+@@ -152,7 +168,7 @@ class MainWindow(Adw.ApplicationWindow):
+         self.auto_run_times = 0
+         # Lazy loading state
+         self.lazy_load_enabled = True
+-        self.lazy_load_batch_size = 10  # Number of messages to load initially and per batch
++        self.lazy_load_batch_size = self.window_layout.lazy_load_batch_size
+         self.lazy_load_threshold = 0.1  # Load more when within 10% of top/bottom
+         self.lazy_loaded_start = 0  # First loaded message index
+         self.lazy_loaded_end = 0  # Last loaded message index (exclusive)
+@@ -160,7 +176,7 @@ class MainWindow(Adw.ApplicationWindow):
+         self.scroll_handler_id = None  # Store scroll handler ID to disconnect when needed
+         # Build Window
+         self.chat_panel = Gtk.Box(hexpand_set=True, hexpand=True)
+-        self.chat_panel.set_size_request(450, -1)
++        self.chat_panel.set_size_request(self.window_layout.chat_min_width, -1)
+         menu_button = Gtk.MenuButton()
+         menu_button.set_icon_name("open-menu-symbolic")
+         menu = Gio.Menu()
+@@ -213,7 +229,7 @@ class MainWindow(Adw.ApplicationWindow):
+         # Add headerbox to default parent
+         self.chat_header.pack_end(self.headerbox)
+     
+-        self.left_panel_toggle_button = Gtk.ToggleButton(css_classes=["flat"], active=True, icon_name="sidebar-show-left-symbolic")
++        self.left_panel_toggle_button = Gtk.ToggleButton(css_classes=["flat"], active=not self.compact_mode, icon_name="sidebar-show-left-symbolic")
+         self.left_panel_toggle_button.connect("clicked", self.on_chat_panel_toggled)
+ 
+         self.chat_block.append(self.chat_header)
+@@ -222,13 +238,16 @@ class MainWindow(Adw.ApplicationWindow):
+         self.chat_panel.append(Gtk.Separator())
+ 
+         # Setup main program block
+-        self.main = Adw.OverlaySplitView(
+-            collapsed=False,
+-            min_sidebar_width=300
+-        )
++        main_options = {
++            "collapsed": self.compact_mode,
++            "min_sidebar_width": self.window_layout.history_width,
++        }
++        if self.compact_mode:
++            main_options["max_sidebar_width"] = self.window_layout.history_width
++        self.main = Adw.OverlaySplitView(**main_options)
+         # Connect toggle button
+         self.chats_main_box = Gtk.Box(hexpand_set=True)
+-        self.chats_main_box.set_size_request(300, -1)
++        self.chats_main_box.set_size_request(self.window_layout.history_width, -1)
+         self.chats_secondary_box = Gtk.Box(
+             orientation=Gtk.Orientation.VERTICAL, hexpand=True, css_classes=["background"]
+         )
+@@ -287,7 +306,12 @@ class MainWindow(Adw.ApplicationWindow):
+         self.chats_main_box.append(Gtk.Separator())
+         self.main.set_sidebar(Adw.NavigationPage(child=self.chats_main_box, title=_("Chats")))
+         self.main.set_content(Adw.NavigationPage(child=self.chat_panel, title=_("Chat")))
+-        self.main.set_show_sidebar(not self.settings.get_boolean("hide-history-on-launch"))
++        self.main.set_show_sidebar(
++            not self.compact_mode
++            and not self.settings.get_boolean("hide-history-on-launch")
++        )
++        if self.compact_mode:
++            self.left_panel_toggle_button.set_active(False)
+         self.main.set_name("visible" if self.main.get_show_sidebar() else "hide")
+         self.main.connect("notify::show-sidebar", lambda x, _ : self.left_panel_toggle_button.set_active(self.main.get_show_sidebar()))
+         # Canvas panel
+@@ -332,10 +356,14 @@ class MainWindow(Adw.ApplicationWindow):
+         self.avatar_widget = None
+ 
+         self.boxw = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, css_classes=["background"])
+-        self.web_panel_header = Adw.HeaderBar(css_classes=["flat", "view"], show_start_title_buttons=False)
++        self.web_panel_header = Adw.HeaderBar(
++            css_classes=["flat", "view"],
++            show_start_title_buttons=False,
++            show_end_title_buttons=not self.compact_mode,
++        )
+         self.web_panel_header.set_title_widget(Gtk.Box())
+         self.boxw.append(self.web_panel_header)
+-        self.boxw.set_size_request(400, 0)
++        self.boxw.set_size_request(self.window_layout.avatar_width, 0)
+         self.boxw.set_hexpand(False)
+         self.avatar_flap.set_flap(self.boxw)
+ 
+@@ -411,11 +439,21 @@ class MainWindow(Adw.ApplicationWindow):
+         self.first_load = False
+         GLib.idle_add(self.load_avatar)
+         
+-        # Connect cleanup on window destroy
+-        self.connect("destroy", self._cleanup_on_destroy)
+-
+     def _cleanup_on_destroy(self, window):
+         """Clean up resources when window is destroyed"""
++        if getattr(self, "_cleanup_complete", False):
++            return
++        self._cleanup_complete = True
++        # GTK owns child destruction at this point. Clear references and only
++        # stop the handler/server; querying or removing widgets here risks
++        # touching an already-disposed GTK child.
++        avatar_handler = getattr(self, "avatar_handler", None)
++        self.avatar_handler = None
++        self.avatar_widget = None
++        ReplaceHelper.set_handler(None)
++        if getattr(self.controller.handlers, "avatar", None) is avatar_handler:
++            self.controller.handlers.avatar = None
++        self._destroy_avatar_once(avatar_handler)
+         # Stop wakeword detection
+         self.stop_wakeword_detection()
+         # Stop stdout monitoring
+@@ -1325,6 +1363,8 @@ class MainWindow(Adw.ApplicationWindow):
+         return widget
+ 
+     def load_avatar(self, force=False):
++        if getattr(self, "_cleanup_complete", False):
++            return GLib.SOURCE_REMOVE
+         if self.controller.newelle_settings.avatar_enabled:
+             # If the avatar is enabled, check if it requires reloading 
+             if not hasattr(self, "avatar_handler"):
+@@ -1341,9 +1381,13 @@ class MainWindow(Adw.ApplicationWindow):
+             self.unload_avatar(old_avatar)
+             if self.avatar_handler is not None:   
+                 self.avatar_widget = self.avatar_handler.create_gtk_widget()
++                self._avatar_cleanup_guard.activate(self.avatar_handler)
+                 self.boxw.append(self.avatar_widget)
+                 ReplaceHelper.set_handler(self.avatar_handler)
+-                if not self.controller.newelle_settings.hide_avatar_on_startup and self.get_width() > 600:
++                if (
++                    not self.controller.newelle_settings.hide_avatar_on_startup
++                    and (self.compact_mode or self.get_width() > 600)
++                ):
+                     self.avatar_flap.set_name("visible")
+                     self.avatar_flap.set_reveal_flap(True)
+             else:
+@@ -1353,15 +1397,33 @@ class MainWindow(Adw.ApplicationWindow):
+             # remove related widgets
+             if self.avatar_handler is not None:
+                 self.unload_avatar(self.avatar_handler)
++            self.avatar_handler = None
++            ReplaceHelper.set_handler(None)
+             self.flap_button_avatar.set_visible(False)
+             self.avatar_flap.set_reveal_flap(False)
+             self.avatar_flap.set_name("hide")
+             return
+        
+     def unload_avatar(self, handler : AvatarHandler):
+-        if self.avatar_widget is not None and handler is not None:
+-            self.boxw.remove(self.avatar_widget)
+-            #handler.destroy()
++        widget = self.avatar_widget
++        if handler is None:
++            return
++
++        # Clear the reference first so repeated unload requests cannot destroy
++        # the same handler twice.
++        self.avatar_widget = None
++        if widget is not None and widget.get_parent() is self.boxw:
++            self.boxw.remove(widget)
++        self._destroy_avatar_once(handler)
++
++    def _destroy_avatar_once(self, handler: AvatarHandler):
++        """Stop one active avatar lifecycle without touching its GTK widget."""
++        if not self._avatar_cleanup_guard.claim_cleanup(handler):
++            return
++        try:
++            handler.destroy()
++        except Exception as error:
++            print("Could not destroy avatar handler: " + str(error))
+     
+     # UI Functions
+     def show_presentation_window(self):
+diff --git a/tests/gi_stubs.py b/tests/gi_stubs.py
+new file mode 100644
+index 0000000..94bd2d6
+--- /dev/null
++++ b/tests/gi_stubs.py
+@@ -0,0 +1,147 @@
++"""Minimal GI import stubs for logic tests on headless systems."""
++
++import sys
++import types
++import builtins
++import gettext
++from pathlib import Path
++
++
++class _DummyValue:
++    def __call__(self, *_args, **_kwargs):
++        return self
++
++    def __getattr__(self, _name):
++        return self
++
++    def __or__(self, _other):
++        return self
++
++    def __and__(self, _other):
++        return self
++
++    def __iter__(self):
++        return iter(())
++
++    def __bool__(self):
++        return False
++
++
++_DUMMY = _DummyValue()
++
++
++class _DummyMeta(type):
++    def __getattr__(cls, _name):
++        return _DUMMY
++
++
++class _DummyWidget(metaclass=_DummyMeta):
++    def __init__(self, *_args, **_kwargs):
++        pass
++
++    def __getattr__(self, _name):
++        return _DUMMY
++
++
++class _RepositoryModule(types.ModuleType):
++    def __getattr__(self, name):
++        module = _GiModule(f"gi.repository.{name}")
++        sys.modules[module.__name__] = module
++        setattr(self, name, module)
++        return module
++
++
++class _GiModule(types.ModuleType):
++    def __getattr__(self, _name):
++        return _DummyWidget
++
++
++def install():
++    """Install stubs only when real GTK/Adwaita typelibs cannot be imported."""
++    if not hasattr(builtins, "_"):
++        builtins._ = gettext.gettext
++    try:
++        from gi.repository import Gtk, Adw  # noqa: F401
++        return
++    except (ImportError, ValueError):
++        pass
++
++    for name in list(sys.modules):
++        if name == "gi" or name.startswith("gi."):
++            del sys.modules[name]
++
++    gi = types.ModuleType("gi")
++    gi.require_version = lambda *_args: None
++    repository = _RepositoryModule("gi.repository")
++    gi.repository = repository
++    sys.modules["gi"] = gi
++    sys.modules["gi.repository"] = repository
++    for name in (
++        "Adw",
++        "Gdk",
++        "GdkPixbuf",
++        "Gio",
++        "GLib",
++        "GObject",
++        "Gtk",
++        "Pango",
++    ):
++        module = _GiModule(f"gi.repository.{name}")
++        setattr(repository, name, module)
++        sys.modules[module.__name__] = module
++
++    repo_root = Path(__file__).resolve().parents[1]
++
++    image_generator = types.ModuleType("src.handlers.image_generator")
++    image_generator.ImageGeneratorHandler = type("ImageGeneratorHandler", (), {})
++    sys.modules["src.handlers.image_generator"] = image_generator
++
++    ui_controller = types.ModuleType("src.ui_controller")
++    ui_controller.UIController = type("UIController", (), {})
++    sys.modules["src.ui_controller"] = ui_controller
++
++    extensions = types.ModuleType("src.extensions")
++
++    class NewelleExtension:
++        def __init__(self, pip_path, extension_path, settings):
++            self.pip_path = pip_path
++            self.path = pip_path
++            self.extension_path = extension_path
++            self.settings = settings
++            self.key = getattr(self, "id", "")
++
++    extensions.NewelleExtension = NewelleExtension
++    sys.modules["src.extensions"] = extensions
++
++    if "tiktoken" not in sys.modules:
++        tiktoken = types.ModuleType("tiktoken")
++        tiktoken.get_encoding = lambda *_args, **_kwargs: _DUMMY
++        tiktoken.encoding_for_model = lambda *_args, **_kwargs: _DUMMY
++        sys.modules["tiktoken"] = tiktoken
++
++    if "src.ui" not in sys.modules:
++        ui_package = types.ModuleType("src.ui")
++        ui_package.__path__ = [str(repo_root / "src" / "ui")]
++        sys.modules["src.ui"] = ui_package
++    widgets_package = types.ModuleType("src.ui.widgets")
++    widgets_package.__path__ = [str(repo_root / "src" / "ui" / "widgets")]
++    sys.modules["src.ui.widgets"] = widgets_package
++
++    widget_modules = {
++        "subagent": ("SubagentWidget",),
++        "scheduled_task": ("ScheduledTaskWidget",),
++        "question": ("QuestionWidget", "RestoredQuestionWidget"),
++        "comborow": ("ComboRowHelper",),
++        "file_read": ("ReadFileWidget",),
++        "file_edit": ("FileEditWidget",),
++        "file_permission_confirm": ("FilePermissionConfirmWidget",),
++        "glob": ("GlobWidget",),
++        "grep": ("GrepWidget",),
++        "list_directory": ("ListDirectoryWidget",),
++    }
++    for module_name, class_names in widget_modules.items():
++        full_name = f"src.ui.widgets.{module_name}"
++        module = types.ModuleType(full_name)
++        for class_name in class_names:
++            setattr(module, class_name, _DummyWidget)
++        sys.modules[full_name] = module
+diff --git a/tests/test_compact.py b/tests/test_compact.py
+new file mode 100644
+index 0000000..951c506
+--- /dev/null
++++ b/tests/test_compact.py
+@@ -0,0 +1,61 @@
++import unittest
++
++from src.utility.compact import resolve_window_layout
++from src.utility.lifecycle import LifecycleCleanupGuard
++
++
++class CompactLayoutTests(unittest.TestCase):
++    def test_compact_defaults_are_phone_sized(self):
++        layout = resolve_window_layout(True, 1400, 800, 420, 720, 132)
++
++        self.assertEqual((layout.width, layout.height), (420, 720))
++        self.assertEqual(layout.avatar_width, 132)
++        self.assertEqual(layout.chat_min_width, 288)
++        self.assertEqual(layout.lazy_load_batch_size, 5)
++
++    def test_compact_values_are_kept_usable(self):
++        layout = resolve_window_layout(True, 1400, 800, -1, 0, 999)
++
++        self.assertEqual((layout.width, layout.height), (420, 720))
++        self.assertEqual(layout.avatar_width, 210)
++        self.assertGreaterEqual(layout.chat_min_width, 240)
++        self.assertLess(layout.history_width, layout.width)
++        self.assertLess(layout.canvas_width, layout.width)
++
++    def test_normal_mode_preserves_existing_dimensions_and_layout(self):
++        layout = resolve_window_layout(False, 1250, 775, 420, 720, 132)
++
++        self.assertEqual((layout.width, layout.height), (1250, 775))
++        self.assertEqual(layout.chat_min_width, 450)
++        self.assertEqual(layout.history_width, 300)
++        self.assertEqual(layout.canvas_width, 420)
++        self.assertEqual(layout.avatar_width, 400)
++        self.assertEqual(layout.lazy_load_batch_size, 10)
++
++
++class LifecycleCleanupGuardTests(unittest.TestCase):
++    def test_cleanup_can_only_be_claimed_once_per_activation(self):
++        guard = LifecycleCleanupGuard()
++        handler = object()
++
++        guard.activate(handler)
++        self.assertTrue(guard.claim_cleanup(handler))
++        self.assertFalse(guard.claim_cleanup(handler))
++
++    def test_reactivated_handler_represents_a_new_lifecycle(self):
++        guard = LifecycleCleanupGuard()
++        handler = object()
++
++        guard.activate(handler)
++        self.assertTrue(guard.claim_cleanup(handler))
++        guard.activate(handler)
++        self.assertTrue(guard.claim_cleanup(handler))
++
++    def test_unloaded_or_unknown_handler_is_safe(self):
++        guard = LifecycleCleanupGuard()
++        self.assertFalse(guard.claim_cleanup(None))
++        self.assertFalse(guard.claim_cleanup(object()))
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tests/test_file_editing_safety.py b/tests/test_file_editing_safety.py
+new file mode 100644
+index 0000000..72778ac
+--- /dev/null
++++ b/tests/test_file_editing_safety.py
+@@ -0,0 +1,124 @@
++import json
++import os
++import tempfile
++import unittest
++
++from tests.gi_stubs import install
++
++install()
++
++from src.integrations.file_editing import FileEditingIntegration
++
++
++class FakeSettings:
++    def __init__(self, rules=None, main_path="/tmp"):
++        self.rules = rules
++        self.main_path = main_path
++
++    def get_string(self, key):
++        if key == "file-permissions":
++            if self.rules is None:
++                raise KeyError(key)
++            return json.dumps(self.rules)
++        if key == "path":
++            return self.main_path
++        return "{}"
++
++
++class FileEditingSafetyTests(unittest.TestCase):
++    def integration(self, rules=None):
++        if rules is None:
++            rules = [{"path": "*", "read": "allow", "write": "allow"}]
++        return FileEditingIntegration("", "", FakeSettings(rules))
++
++    def test_default_write_policy_requires_confirmation(self):
++        integration = FileEditingIntegration("", "", FakeSettings())
++        self.assertEqual(
++            integration._get_permission_mode("/tmp/example", "write"),
++            "ask",
++        )
++        with tempfile.TemporaryDirectory() as directory:
++            file_path = os.path.join(directory, "confirm.txt")
++            with open(file_path, "w", encoding="utf-8") as file:
++                file.write("data")
++            result = integration.delete_file(file_path)
++            self.assertTrue(result.requires_interaction)
++            self.assertTrue(os.path.exists(file_path))
++
++    def test_delete_removes_files_but_refuses_directories_and_directory_links(self):
++        integration = self.integration()
++        with tempfile.TemporaryDirectory() as directory:
++            file_path = os.path.join(directory, "file.txt")
++            with open(file_path, "w", encoding="utf-8") as file:
++                file.write("data")
++
++            output = integration.delete_file(file_path).get_output()
++            self.assertIn("Successfully deleted", output)
++            self.assertFalse(os.path.exists(file_path))
++
++            output = integration.delete_file(directory).get_output()
++            self.assertIn("Refusing to delete a directory", output)
++            self.assertTrue(os.path.isdir(directory))
++
++            target_directory = os.path.join(directory, "target")
++            os.mkdir(target_directory)
++            link_path = os.path.join(directory, "directory-link")
++            os.symlink(target_directory, link_path)
++            output = integration.delete_file(link_path).get_output()
++            self.assertIn("symlink to a directory", output)
++            self.assertTrue(os.path.lexists(link_path))
++
++    def test_move_refuses_overwrite_without_explicit_flag(self):
++        integration = self.integration()
++        with tempfile.TemporaryDirectory() as directory:
++            source = os.path.join(directory, "source.txt")
++            destination = os.path.join(directory, "destination.txt")
++            with open(source, "w", encoding="utf-8") as file:
++                file.write("source")
++            with open(destination, "w", encoding="utf-8") as file:
++                file.write("destination")
++
++            output = integration.move_file(source, destination).get_output()
++            self.assertIn("overwrite=true", output)
++            self.assertTrue(os.path.exists(source))
++
++            output = integration.move_file(
++                source,
++                destination,
++                overwrite=True,
++            ).get_output()
++            self.assertIn("Successfully moved", output)
++            self.assertFalse(os.path.exists(source))
++            with open(destination, encoding="utf-8") as file:
++                self.assertEqual(file.read(), "source")
++
++    def test_move_checks_destination_write_policy(self):
++        with tempfile.TemporaryDirectory() as directory:
++            source = os.path.join(directory, "source.txt")
++            destination = os.path.join(directory, "blocked.txt")
++            with open(source, "w", encoding="utf-8") as file:
++                file.write("source")
++            rules = [
++                {"path": "*", "read": "allow", "write": "allow"},
++                {"path": destination, "read": "allow", "write": "block"},
++            ]
++
++            output = self.integration(rules).move_file(source, destination).get_output()
++            self.assertIn("blocked", output)
++            self.assertTrue(os.path.exists(source))
++            self.assertFalse(os.path.exists(destination))
++
++    def test_operations_require_absolute_paths(self):
++        integration = self.integration()
++        self.assertIn(
++            "must be absolute",
++            integration.delete_file("relative.txt").get_output(),
++        )
++        self.assertIn(
++            "must be absolute",
++            integration.move_file("relative.txt", "/tmp/output").get_output(),
++        )
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tests/test_git_forge.py b/tests/test_git_forge.py
+new file mode 100644
+index 0000000..0d79b25
+--- /dev/null
++++ b/tests/test_git_forge.py
+@@ -0,0 +1,285 @@
++import json
++import os
++import subprocess
++import unittest
++from unittest.mock import patch
++
++from tests.gi_stubs import install
++
++install()
++
++from src.integrations.git_forge import (
++    GitForgeIntegration,
++    build_issues_url,
++    may_attach_token,
++    normalize_origin,
++    parse_issues_response,
++    validate_base_url,
++    validate_repo,
++)
++
++
++class FakeResponse:
++    def __init__(self, payload):
++        self.payload = payload
++
++    def __enter__(self):
++        return self
++
++    def __exit__(self, *_args):
++        return False
++
++    def read(self, limit):
++        return self.payload[:limit]
++
++
++class GitForgeTests(unittest.TestCase):
++    def setUp(self):
++        self.integration = GitForgeIntegration("", "", None)
++
++    def test_builds_provider_specific_issue_urls(self):
++        github = build_issues_url("github", "owner/repo", state="closed", limit=5)
++        self.assertEqual(
++            github,
++            "https://api.github.com/repos/owner/repo/issues?state=closed&per_page=5",
++        )
++
++        gitlab = build_issues_url(
++            "gitlab",
++            "group/subgroup/repo",
++            "https://gitlab.example",
++        )
++        self.assertIn(
++            "/api/v4/projects/group%2Fsubgroup%2Frepo/issues",
++            gitlab,
++        )
++
++        gitea = build_issues_url(
++            "gitea",
++            "owner/repo",
++            "https://forge.example",
++            limit=500,
++        )
++        self.assertIn("/api/v1/repos/owner/repo/issues", gitea)
++        self.assertIn("limit=100", gitea)
++
++    def test_rejects_unsafe_base_urls_and_repo_paths(self):
++        for value in (
++            "file:///etc/passwd",
++            "https://user:secret@example.com",
++            "https://example.com/path?token=secret",
++        ):
++            with self.subTest(value=value):
++                with self.assertRaises(ValueError):
++                    validate_base_url("gitea", value)
++        for value in ("repo", "../owner/repo", "owner/repo?query"):
++            with self.subTest(value=value):
++                with self.assertRaises(ValueError):
++                    validate_repo(value)
++
++    def test_origin_normalization_includes_scheme_host_and_effective_port(self):
++        self.assertEqual(
++            normalize_origin("HTTPS://API.GITHUB.COM.:443/path"),
++            ("https", "api.github.com", 443),
++        )
++        self.assertNotEqual(
++            normalize_origin("http://api.github.com"),
++            normalize_origin("https://api.github.com"),
++        )
++        self.assertNotEqual(
++            normalize_origin("https://api.github.com:8443"),
++            normalize_origin("https://api.github.com"),
++        )
++        with self.assertRaises(ValueError):
++            normalize_origin("https://user:password@api.github.com")
++
++    def test_parses_issues_and_excludes_github_pull_requests(self):
++        payload = json.dumps(
++            [
++                {
++                    "number": 1,
++                    "title": "Issue",
++                    "state": "open",
++                    "html_url": "https://example/1",
++                    "comments": 2,
++                },
++                {
++                    "number": 2,
++                    "title": "PR",
++                    "state": "open",
++                    "pull_request": {},
++                },
++            ]
++        ).encode()
++        self.assertEqual(
++            parse_issues_response("github", payload),
++            [
++                {
++                    "number": 1,
++                    "title": "Issue",
++                    "state": "open",
++                    "url": "https://example/1",
++                    "comments": 2,
++                }
++            ],
++        )
++
++    def test_issue_listing_uses_environment_token_with_mocked_http(self):
++        payload = json.dumps(
++            [{"iid": 7, "title": "Bug", "state": "opened", "web_url": "u"}]
++        ).encode()
++        captured = {}
++
++        def fake_urlopen(request, timeout):
++            captured["request"] = request
++            captured["timeout"] = timeout
++            return FakeResponse(payload)
++
++        token = "test-secret-token"
++        with patch.dict(os.environ, {"GITLAB_TOKEN": token}, clear=True):
++            with patch("src.integrations.git_forge.urlopen", fake_urlopen):
++                output = self.integration.list_issues(
++                    "gitlab",
++                    "owner/repo",
++                ).get_output()
++
++        self.assertEqual(json.loads(output)[0]["number"], 7)
++        self.assertEqual(captured["request"].get_header("Private-token"), token)
++        self.assertNotIn(token, output)
++
++    def test_token_is_omitted_for_mismatched_custom_origin(self):
++        cases = (
++            ("github", "GITHUB_TOKEN", "GITHUB_BASE_URL", "Authorization"),
++            ("gitlab", "GITLAB_TOKEN", "GITLAB_BASE_URL", "Private-token"),
++            ("gitea", "GIT_FORGE_TOKEN", "GIT_FORGE_BASE_URL", "Authorization"),
++        )
++        for provider, token_name, base_name, header in cases:
++            with self.subTest(provider=provider):
++                captured = {}
++
++                def fake_urlopen(request, timeout):
++                    captured["request"] = request
++                    return FakeResponse(b"[]")
++
++                token = f"must-not-reach-custom-{provider}"
++                environment = {
++                    token_name: token,
++                    base_name: f"https://trusted-{provider}.example",
++                }
++                with patch.dict(os.environ, environment, clear=True):
++                    with patch("src.integrations.git_forge.urlopen", fake_urlopen):
++                        output = self.integration.list_issues(
++                            provider,
++                            "owner/repo",
++                            base_url=f"https://untrusted-{provider}.example",
++                        ).get_output()
++
++                self.assertIsNone(captured["request"].get_header(header))
++                self.assertFalse(
++                    may_attach_token(
++                        provider,
++                        f"https://untrusted-{provider}.example/issues",
++                        environment,
++                    )
++                )
++                self.assertNotIn(token, output)
++
++    def test_tokens_are_included_for_matching_configured_origins(self):
++        cases = (
++            (
++                "github",
++                "GITHUB_TOKEN",
++                "GITHUB_BASE_URL",
++                "https://github.internal:8443/api/v3",
++                "Authorization",
++                "Bearer secret-github",
++            ),
++            (
++                "gitlab",
++                "GITLAB_TOKEN",
++                "GITLAB_BASE_URL",
++                "https://gitlab.internal",
++                "Private-token",
++                "secret-gitlab",
++            ),
++            (
++                "gitea",
++                "GIT_FORGE_TOKEN",
++                "GIT_FORGE_BASE_URL",
++                "http://gitea.internal:3000",
++                "Authorization",
++                "token secret-gitea",
++            ),
++        )
++        for provider, token_name, base_name, base_url, header, expected in cases:
++            with self.subTest(provider=provider):
++                captured = {}
++
++                def fake_urlopen(request, timeout):
++                    captured["request"] = request
++                    return FakeResponse(b"[]")
++
++                token = expected.split(" ", 1)[-1]
++                with patch.dict(
++                    os.environ,
++                    {token_name: token, base_name: base_url},
++                    clear=True,
++                ):
++                    with patch("src.integrations.git_forge.urlopen", fake_urlopen):
++                        output = self.integration.list_issues(
++                            provider,
++                            "owner/repo",
++                        ).get_output()
++
++                self.assertEqual(captured["request"].get_header(header), expected)
++                self.assertNotIn(header, captured["request"].headers)
++                self.assertEqual(json.loads(output), [])
++                self.assertNotIn(token, output)
++
++    def test_token_is_redacted_from_http_errors(self):
++        token = "never-print-this-token"
++
++        def fake_urlopen(request, timeout):
++            raise RuntimeError(
++                f"request rejected with {request.get_header('Authorization')}"
++            )
++
++        with patch.dict(os.environ, {"GITHUB_TOKEN": token}, clear=True):
++            with patch("src.integrations.git_forge.urlopen", fake_urlopen):
++                output = self.integration.list_issues(
++                    "github",
++                    "owner/repo",
++                ).get_output()
++
++        self.assertIn("[REDACTED]", output)
++        self.assertNotIn(token, output)
++
++    def test_local_git_uses_argument_array_without_shell(self):
++        completed = subprocess.CompletedProcess([], 0, stdout=b"## main\n", stderr=b"")
++        with patch("src.integrations.git_forge.subprocess.run", return_value=completed) as run:
++            output = self.integration.git_status("/tmp").get_output()
++
++        self.assertEqual(output, "## main")
++        args, kwargs = run.call_args
++        self.assertEqual(
++            args[0],
++            [
++                "git",
++                "--no-optional-locks",
++                "-c",
++                "core.fsmonitor=false",
++                "-c",
++                "diff.external=",
++                "-C",
++                "/tmp",
++                "status",
++                "--short",
++                "--branch",
++            ],
++        )
++        self.assertNotIn("shell", kwargs)
++        self.assertEqual(kwargs["timeout"], 15)
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tests/test_gtts_handler.py b/tests/test_gtts_handler.py
+new file mode 100644
+index 0000000..f1c1d2f
+--- /dev/null
++++ b/tests/test_gtts_handler.py
+@@ -0,0 +1,65 @@
++import builtins
++import importlib.util
++import sys
++import types
++import unittest
++from unittest.mock import patch
++
++from tests.gi_stubs import install
++
++install()
++
++if importlib.util.find_spec("pydub") is None:
++    pydub = types.ModuleType("pydub")
++    pydub.AudioSegment = type("AudioSegment", (), {})
++    sys.modules["pydub"] = pydub
++
++if importlib.util.find_spec("requests_toolbelt") is None:
++    requests_toolbelt = types.ModuleType("requests_toolbelt")
++    multipart = types.ModuleType("requests_toolbelt.multipart")
++    encoder = types.ModuleType("requests_toolbelt.multipart.encoder")
++    encoder.MultipartEncoder = type("MultipartEncoder", (), {})
++    sys.modules["requests_toolbelt"] = requests_toolbelt
++    sys.modules["requests_toolbelt.multipart"] = multipart
++    sys.modules["requests_toolbelt.multipart.encoder"] = encoder
++
++from src.handlers.tts.gtts_handler import FALLBACK_VOICES, gTTSHandler
++
++
++class FakeSettings:
++    def get_string(self, _key):
++        return "{}"
++
++
++class GTTSHandlerTests(unittest.TestCase):
++    def setUp(self):
++        self.handler = gTTSHandler(FakeSettings(), "/tmp")
++
++    def test_extra_settings_use_safe_voice_when_gtts_is_missing(self):
++        real_import = builtins.__import__
++
++        def import_without_gtts(name, *args, **kwargs):
++            if name == "gtts":
++                raise ModuleNotFoundError("No module named 'gtts'", name="gtts")
++            return real_import(name, *args, **kwargs)
++
++        with patch("builtins.__import__", side_effect=import_without_gtts):
++            setting = self.handler.get_extra_settings()[0]
++
++        self.assertEqual(setting["values"], FALLBACK_VOICES)
++        self.assertEqual(setting["default"], "en")
++
++    def test_get_voices_uses_installed_gtts_metadata(self):
++        gtts = types.ModuleType("gtts")
++        gtts.lang = types.SimpleNamespace(
++            tts_langs=lambda: {"en": "English", "fr": "French"}
++        )
++
++        with patch.dict(sys.modules, {"gtts": gtts}):
++            voices = self.handler.get_voices()
++
++        self.assertEqual(voices, (("English", "en"), ("French", "fr")))
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tests/test_kimi_handler.py b/tests/test_kimi_handler.py
+new file mode 100644
+index 0000000..7544b43
+--- /dev/null
++++ b/tests/test_kimi_handler.py
+@@ -0,0 +1,111 @@
++import json
++import sys
++import types
++import unittest
++from unittest.mock import patch
++
++from tests.gi_stubs import install
++
++install()
++
++from src.handlers.llm.kimi_handler import (
++    KIMI_K2_6_QUICKSTART_URL,
++    KimiHandler,
++    SWARM_SYSTEM_INSTRUCTION,
++)
++
++
++class FakeSettings:
++    def __init__(self):
++        self.values = {"llm-settings": "{}"}
++
++    def get_string(self, key):
++        return self.values.get(key, "{}")
++
++    def set_string(self, key, value):
++        self.values[key] = value
++
++
++class FakeCompletions:
++    last_kwargs = None
++
++    def create(self, **kwargs):
++        self.last_kwargs = kwargs
++        FakeCompletions.last_kwargs = kwargs
++        message = types.SimpleNamespace(content="ok", tool_calls=None)
++        return types.SimpleNamespace(
++            choices=[types.SimpleNamespace(message=message)]
++        )
++
++
++class FakeOpenAI:
++    last_init = None
++
++    def __init__(self, **kwargs):
++        FakeOpenAI.last_init = kwargs
++        self.chat = types.SimpleNamespace(completions=FakeCompletions())
++
++
++class KimiHandlerTests(unittest.TestCase):
++    def setUp(self):
++        self.settings = FakeSettings()
++        self.handler = KimiHandler(self.settings, "/tmp/cache")
++        self.handler.set_setting("native_tool_calling", False)
++        self.handler.set_setting("advanced_params", False)
++
++    def test_official_endpoint_model_and_thinking_body(self):
++        fake_openai = types.ModuleType("openai")
++        fake_openai.OpenAI = FakeOpenAI
++        fake_openai.NOT_GIVEN = object()
++
++        self.handler.set_setting("thinking", True)
++        self.handler.set_setting("swarm_mode", True)
++        with patch.dict(sys.modules, {"openai": fake_openai}):
++            output = self.handler.generate_text(
++                "hello",
++                history=[],
++                system_prompt=["base instruction"],
++            )
++
++        self.assertEqual(output, "ok")
++        self.assertEqual(
++            FakeOpenAI.last_init["base_url"],
++            "https://api.moonshot.ai/v1",
++        )
++        request = FakeCompletions.last_kwargs
++        self.assertEqual(request["model"], "kimi-k2.6")
++        self.assertEqual(
++            request["extra_body"],
++            {"thinking": {"type": "enabled"}},
++        )
++        self.assertIn("base instruction", request["messages"][0]["content"])
++        self.assertIn(SWARM_SYSTEM_INSTRUCTION, request["messages"][0]["content"])
++        self.assertNotIn("swarm_mode", request["extra_body"])
++
++    def test_disabled_thinking_and_swarm_prompt_are_explicit(self):
++        self.handler.set_setting("thinking", False)
++        self.handler.set_setting("swarm_mode", False)
++
++        self.assertEqual(
++            self.handler.get_thinking_params(),
++            {"thinking": {"type": "disabled"}},
++        )
++        self.assertEqual(
++            self.handler.prepare_system_prompts(["base"]),
++            ["base"],
++        )
++
++    def test_settings_expose_key_tools_and_accurate_swarm_label(self):
++        settings = {setting["key"]: setting for setting in self.handler.get_extra_settings()}
++
++        self.assertIn("api", settings)
++        self.assertIn("thinking", settings)
++        self.assertIn("native_tool_calling", settings)
++        self.assertIn("swarm_mode", settings)
++        self.assertIn("Prompt", settings["swarm_mode"]["title"])
++        self.assertEqual(settings["model"]["default"], "kimi-k2.6")
++        self.assertEqual(settings["model"]["website"], KIMI_K2_6_QUICKSTART_URL)
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tests/test_language_accent.py b/tests/test_language_accent.py
+new file mode 100644
+index 0000000..c4ab889
+--- /dev/null
++++ b/tests/test_language_accent.py
+@@ -0,0 +1,98 @@
++import unittest
++
++from src.utility.language_accent import detect_language, resolve_voice_for_text
++
++
++class LanguageDetectionTests(unittest.TestCase):
++    def test_detects_english(self):
++        self.assertEqual(
++            detect_language("Hello, how are you? Please tell me what this is."),
++            "en",
++        )
++
++    def test_detects_french_with_and_without_accents(self):
++        self.assertEqual(
++            detect_language("Bonjour, comment allez-vous aujourd'hui ?"),
++            "fr",
++        )
++        self.assertEqual(
++            detect_language("Je vous remercie pour cette information."),
++            "fr",
++        )
++
++    def test_detects_fallback_languages(self):
++        self.assertEqual(detect_language("Hola, gracias por esta información."), "es")
++        self.assertEqual(detect_language("Buenos días"), "es")
++        self.assertEqual(detect_language("Hallo, wie ist das für dich?"), "de")
++        self.assertEqual(detect_language("Guten Morgen"), "de")
++        self.assertEqual(detect_language("Buongiorno, come sono le cose?"), "it")
++        self.assertEqual(detect_language("Ciao!"), "it")
++
++    def test_uncertain_text_has_no_language(self):
++        self.assertIsNone(detect_language("42!"))
++        self.assertIsNone(detect_language("OK"))
++
++
++class VoiceResolutionTests(unittest.TestCase):
++    VOICES = (
++        ("Sonia", "en-GB-SoniaNeural"),
++        ("Ava", "en-US-AvaNeural"),
++        ("Denise", "fr-FR-DeniseNeural"),
++        ("Elvira", "es-ES-ElviraNeural"),
++    )
++
++    def test_selects_preferred_matching_voice(self):
++        self.assertEqual(
++            resolve_voice_for_text(
++                "Hello, please tell me what this is.",
++                self.VOICES,
++                "fr-FR-DeniseNeural",
++            ),
++            "en-GB-SoniaNeural",
++        )
++        self.assertEqual(
++            resolve_voice_for_text(
++                "Bonjour, je vous remercie pour cette information.",
++                self.VOICES,
++                "en-US-AvaNeural",
++            ),
++            "fr-FR-DeniseNeural",
++        )
++
++    def test_retains_matching_configured_voice(self):
++        self.assertEqual(
++            resolve_voice_for_text(
++                "Hello, how are you today?",
++                self.VOICES,
++                "en-US-AvaNeural",
++            ),
++            "en-US-AvaNeural",
++        )
++
++    def test_supports_language_only_voice_ids(self):
++        self.assertEqual(
++            resolve_voice_for_text(
++                "Bonjour, merci pour votre réponse.",
++                (("English", "en"), ("Français", "fr")),
++                "en",
++            ),
++            "fr",
++        )
++
++    def test_retains_configured_voice_when_no_match_exists(self):
++        self.assertEqual(
++            resolve_voice_for_text(
++                "Guten Tag, wie ist das für dich?",
++                self.VOICES,
++                "en-US-AvaNeural",
++            ),
++            "en-US-AvaNeural",
++        )
++        self.assertEqual(
++            resolve_voice_for_text("OK", self.VOICES, "en-US-AvaNeural"),
++            "en-US-AvaNeural",
++        )
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tests/test_ollama_catalog.py b/tests/test_ollama_catalog.py
+new file mode 100644
+index 0000000..1399247
+--- /dev/null
++++ b/tests/test_ollama_catalog.py
+@@ -0,0 +1,35 @@
++import unittest
++
++from tests.gi_stubs import install
++
++install()
++
++from src.handlers.llm.ollama_catalog import get_recommended_ollama_models
++
++
++class OllamaCatalogTests(unittest.TestCase):
++    def test_catalog_has_installable_practical_small_models(self):
++        models = get_recommended_ollama_models()
++        small_models = [
++            model for model in models
++            if model["hardware_tier"] == "small"
++        ]
++
++        self.assertGreaterEqual(len(small_models), 2)
++        self.assertTrue(all(model["installable"] for model in models))
++        self.assertTrue(all("key" in model and "description" in model for model in models))
++
++    def test_llama_four_models_are_marked_extreme(self):
++        by_key = {model["key"]: model for model in get_recommended_ollama_models()}
++
++        for key in ("llama4:scout", "llama4:maverick"):
++            self.assertEqual(by_key[key]["hardware_tier"], "extreme")
++            self.assertIn("Extremely hardware-heavy", by_key[key]["description"])
++
++    def test_catalog_does_not_present_kimi_as_local(self):
++        keys = [model["key"].lower() for model in get_recommended_ollama_models()]
++        self.assertFalse(any("kimi" in key for key in keys))
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tests/test_swarm_helpers.py b/tests/test_swarm_helpers.py
+new file mode 100644
+index 0000000..ad29236
+--- /dev/null
++++ b/tests/test_swarm_helpers.py
+@@ -0,0 +1,56 @@
++import json
++import unittest
++
++from tests.gi_stubs import install
++
++install()
++
++from src.integrations.agent_tools import (
++    DEFAULT_SWARM_CONCURRENCY,
++    MAX_SWARM_CONCURRENCY,
++    MAX_SWARM_TASKS,
++    enforce_swarm_cap,
++    parse_swarm_tasks,
++)
++
++
++class SwarmHelperTests(unittest.TestCase):
++    def test_parses_json_and_preserves_order(self):
++        tasks = parse_swarm_tasks(
++            json.dumps(
++                [
++                    "first",
++                    {
++                        "task": "second",
++                        "tools": "read_file",
++                        "system_prompt": "be exact",
++                    },
++                ]
++            )
++        )
++
++        self.assertEqual([item["task"] for item in tasks], ["first", "second"])
++        self.assertEqual(tasks[1]["tools"], "read_file")
++        self.assertEqual(tasks[1]["system_prompt"], "be exact")
++        self.assertEqual(tasks[0]["skills"], "")
++
++    def test_rejects_invalid_and_oversized_task_lists(self):
++        for value in ("not json", {}, [], [""], [1]):
++            with self.subTest(value=value):
++                with self.assertRaises(ValueError):
++                    parse_swarm_tasks(value)
++        with self.assertRaises(ValueError):
++            parse_swarm_tasks(["task"] * (MAX_SWARM_TASKS + 1))
++
++    def test_concurrency_is_bounded_by_eight(self):
++        self.assertEqual(enforce_swarm_cap(), DEFAULT_SWARM_CONCURRENCY)
++        self.assertEqual(enforce_swarm_cap(999), MAX_SWARM_CONCURRENCY)
++        self.assertEqual(enforce_swarm_cap(7, hard_cap=4), 4)
++        with self.assertRaises(ValueError):
++            enforce_swarm_cap(0)
++        with self.assertRaises(ValueError):
++            enforce_swarm_cap("many")
++
++
++if __name__ == "__main__":
++    unittest.main()

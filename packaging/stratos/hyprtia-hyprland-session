@@ -1,0 +1,19 @@
+#!/bin/sh
+
+set -eu
+
+config_root=${HYPRTIA_HYPR_CONFIG_HOME:-${XDG_CONFIG_HOME:-"$HOME/.config"}}
+config_dir=${config_root%/}/hypr
+rule_file=$config_dir/hyprtia-confined-floats.conf
+
+command -v hyprpm >/dev/null 2>&1 || exit 0
+hyprpm reload
+command -v hyprctl >/dev/null 2>&1 || exit 0
+
+if hyprctl dispatch 'hl.dsp.no_op()' 2>/dev/null | grep -qx 'ok'; then
+  # Re-evaluate the guarded Lua rule now that the plugin is loaded.
+  hyprctl reload
+elif [ -f "$rule_file" ]; then
+  # Hyprlang cannot guard an unknown plugin effect, so source it only now.
+  hyprctl keyword source "$rule_file"
+fi

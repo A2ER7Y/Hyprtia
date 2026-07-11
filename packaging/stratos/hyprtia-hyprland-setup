@@ -1,0 +1,151 @@
+#!/bin/sh
+
+set -eu
+
+plugin_url=https://github.com/mennemann/hyprland-confined-floats
+plugin_name=confined-floats
+binary_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+prefix=$(dirname -- "$binary_dir")
+share_dir=${HYPRTIA_HYPRLAND_SHARE_DIR:-"$prefix/share/hyprtia"}
+config_root=${HYPRTIA_HYPR_CONFIG_HOME:-${XDG_CONFIG_HOME:-"$HOME/.config"}}
+config_dir=${config_root%/}/hypr
+state_root=${HYPRTIA_STATE_HOME:-${XDG_STATE_HOME:-"$HOME/.local/state"}}
+state_dir=${state_root%/}/hyprtia
+plugin_marker=$state_dir/confined-floats.enabled
+lock_dir=$state_dir/hyprland-setup.lock
+mode=${HYPRTIA_HYPRLAND_CONFIG_MODE:-}
+install_plugin=true
+force_plugin=false
+
+for option in "$@"; do
+  case "$option" in
+    --auto) ;;
+    --config-only) install_plugin=false ;;
+    --force) force_plugin=true ;;
+    *)
+      printf 'Usage: %s [--auto] [--config-only] [--force]\n' "$0" >&2
+      exit 2
+      ;;
+  esac
+done
+
+detect_mode() {
+  if [ -n "$mode" ]; then
+    case "$mode" in
+      conf | lua)
+        printf '%s\n' "$mode"
+        return
+        ;;
+      *)
+        printf 'hyprtia-hyprland-setup: invalid config mode: %s\n' "$mode" >&2
+        exit 2
+        ;;
+    esac
+  fi
+
+  if command -v hyprctl >/dev/null 2>&1 &&
+    hyprctl dispatch 'hl.dsp.no_op()' 2>/dev/null | grep -qx 'ok'; then
+    printf 'lua\n'
+  elif [ -f "$config_dir/hyprland.lua" ]; then
+    printf 'lua\n'
+  else
+    printf 'conf\n'
+  fi
+}
+
+install_conf() {
+  template=$share_dir/hyprtia-hyprland.conf
+  output=$config_dir/hyprtia-stratos.conf
+  main=$config_dir/hyprland.conf
+  if [ ! -f "$template" ]; then
+    printf 'hyprtia-hyprland-setup: missing resource: %s\n' "$template" >&2
+    exit 1
+  fi
+
+  install -Dm644 "$template" "$output"
+  case "$output" in
+    "$HOME"/*) source_path="~/${output#"$HOME"/}" ;;
+    *) source_path=$output ;;
+  esac
+  include_line="source = $source_path"
+
+  if [ ! -f "$main" ]; then
+    printf '%s\n' '# StratOS defaults managed by Hyprtia' "$include_line" >"$main"
+  elif ! grep -qE 'source[[:space:]]*=.*hyprtia-stratos\.conf' "$main"; then
+    printf '\n%s\n%s\n' '# StratOS defaults managed by Hyprtia' "$include_line" >>"$main"
+  fi
+}
+
+install_lua() {
+  template=$share_dir/hyprtia-hyprland.lua
+  output=$config_dir/hyprtia-stratos.lua
+  main=$config_dir/hyprland.lua
+  if [ ! -f "$template" ]; then
+    printf 'hyprtia-hyprland-setup: missing resource: %s\n' "$template" >&2
+    exit 1
+  fi
+
+  install -Dm644 "$template" "$output"
+  include_line='require("hyprtia-stratos")'
+  if [ ! -f "$main" ]; then
+    printf '%s\n' '-- StratOS defaults managed by Hyprtia' "$include_line" >"$main"
+  elif ! grep -qF "$include_line" "$main"; then
+    printf '\n%s\n%s\n' '-- StratOS defaults managed by Hyprtia' "$include_line" >>"$main"
+  fi
+}
+
+mkdir -p "$config_dir" "$state_dir"
+rule_template=$share_dir/hyprtia-confined-floats.conf
+rule_file=$config_dir/hyprtia-confined-floats.conf
+if [ ! -f "$rule_template" ]; then
+  printf 'hyprtia-hyprland-setup: missing resource: %s\n' "$rule_template" >&2
+  exit 1
+fi
+install -Dm644 "$rule_template" "$rule_file"
+
+selected_mode=$(detect_mode)
+case "$selected_mode" in
+  lua) install_lua ;;
+  conf) install_conf ;;
+esac
+
+if [ "$install_plugin" = false ]; then
+  exit 0
+fi
+if [ "$force_plugin" = false ] && [ -f "$plugin_marker" ]; then
+  exit 0
+fi
+if ! command -v hyprpm >/dev/null 2>&1; then
+  printf 'hyprtia-hyprland-setup: hyprpm is required to install %s\n' "$plugin_name" >&2
+  exit 1
+fi
+if ! mkdir "$lock_dir" 2>/dev/null; then
+  exit 0
+fi
+trap 'rmdir "$lock_dir" 2>/dev/null || true' EXIT HUP INT TERM
+
+plugin_list=$(hyprpm list 2>/dev/null || true)
+case "$plugin_list" in
+  *"$plugin_name"*) ;;
+  *) hyprpm add "$plugin_url" ;;
+esac
+
+hyprpm enable "$plugin_name"
+touch "$plugin_marker"
+
+# A future session also applies the rule through the managed autostart.
+session_loader=$binary_dir/hyprtia-hyprland-session
+if [ -x "$session_loader" ]; then
+  "$session_loader" >/dev/null 2>&1 || true
+else
+  hyprpm reload >/dev/null 2>&1 || true
+  if command -v hyprctl >/dev/null 2>&1; then
+    if [ "$selected_mode" = lua ]; then
+      hyprctl reload >/dev/null 2>&1 || true
+    else
+      hyprctl keyword source "$rule_file" >/dev/null 2>&1 || true
+    fi
+  fi
+fi
+
+printf 'Hyprtia: enabled %s and configured the French keyboard layout.\n' "$plugin_name"
