@@ -5,6 +5,7 @@ pkgbase = hyprtia-assistant
 	url = https://github.com/NyarchLinux/NyarchAssistant
 	arch = any
 	license = GPL-3.0-only
+	makedepends = git
 	makedepends = meson
 	depends = ffmpeg
 	depends = git
