@@ -65,9 +65,10 @@ build() {
 }
 
 check() {
+  cd "$srcdir/NyarchAssistant"
   PYTHONDONTWRITEBYTECODE=1 python -m unittest discover \
-    -s "$srcdir/NyarchAssistant/tests" -p 'test_*.py'
-  glib-compile-schemas --strict --dry-run "$srcdir/NyarchAssistant/data"
+    -s tests -p 'test_*.py'
+  glib-compile-schemas --strict --dry-run data
 }
 
 package() {
