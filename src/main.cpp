@@ -36,6 +36,34 @@ namespace {
   constexpr const char* kDaemonPipeEnv = "NOCTALIA_DAEMON_PIPE_FD";
   int g_daemonPipe = -1;
 
+  const char* hyprtiaStartupGuardPath() {
+    const char* path = std::getenv("HYPRTIA_STARTUP_GUARD_FILE");
+    if (path == nullptr || path[0] == '\0') {
+      return nullptr;
+    }
+    const char* basename = std::strrchr(path, '/');
+    basename = basename != nullptr ? basename + 1 : path;
+    return std::strcmp(basename, "startup.pending") == 0 ? path : nullptr;
+  }
+
+  void refreshHyprtiaStartupGuard() {
+    const char* path = hyprtiaStartupGuardPath();
+    if (path == nullptr) {
+      return;
+    }
+    if (FILE* marker = std::fopen(path, "w"); marker != nullptr) {
+      (void)std::fprintf(marker, "%ld\n", static_cast<long>(::getpid()));
+      (void)std::fclose(marker);
+    }
+  }
+
+  void clearHyprtiaStartupGuard() {
+    if (const char* path = hyprtiaStartupGuardPath(); path != nullptr) {
+      (void)::unlink(path);
+    }
+    (void)::unsetenv("HYPRTIA_STARTUP_GUARD_FILE");
+  }
+
   void closeFd(int& fd) {
     if (fd == -1) {
       return;
@@ -230,6 +258,10 @@ namespace {
   }
 
   int runShell() {
+    // Daemonization changes the process id. Keep the pending marker associated
+    // with the child so concurrent launches cannot mistake it for a stale crash.
+    refreshHyprtiaStartupGuard();
+
     // Raise the soft fd limit before any Wayland/EGL init. The NVIDIA EGL/Wayland
     // driver leaks internal sync_file fences slowly across a session; the default
     // 1024 soft cap can be exhausted in a long-running session, after which the
@@ -241,12 +273,16 @@ namespace {
     SingleInstanceLock instanceLock;
     if (!instanceLock.tryAcquire()) {
       std::println(stderr, "error: noctalia is already running");
+      clearHyprtiaStartupGuard();
       completeDaemonStartup(1);
       _exit(1);
     }
     try {
       Application app;
-      app.run([]() { completeDaemonStartup(0); });
+      app.run([]() {
+        clearHyprtiaStartupGuard();
+        completeDaemonStartup(0);
+      });
     } catch (const std::exception& e) {
       logError("fatal: {}", e.what());
       completeDaemonStartup(1);

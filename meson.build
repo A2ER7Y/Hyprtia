@@ -673,6 +673,7 @@ _noctalia_sources = files(
   'src/shell/wallpaper/panel/wallpaper_tile.cpp',
   'src/shell/bar/widget.cpp',
   'src/shell/bar/widget_factory.cpp',
+  'src/shell/bar/widget_presentation.cpp',
   'src/shell/bar/widgets/active_window_widget.cpp',
   'src/shell/bar/widgets/audio_visualizer_widget.cpp',
   'src/shell/bar/widgets/battery_widget.cpp',
@@ -984,6 +985,7 @@ install_data(
 install_data(
   'packaging/stratos/hyprtia-hyprland-setup',
   'packaging/stratos/hyprtia-hyprland-session',
+  'packaging/stratos/hyprtia-debug-report',
   'packaging/stratos/hyprtia-strat',
   install_dir: get_option('bindir'),
   install_mode: 'rwxr-xr-x',
@@ -991,6 +993,7 @@ install_data(
 
 install_data(
   'packaging/stratos/config.toml',
+  'packaging/stratos/safe-mode.toml',
   install_dir: get_option('datadir') / 'hyprtia',
 )
 
@@ -1467,6 +1470,29 @@ config_widget_test = executable('config_widget_test',
 
 test('config_widget', config_widget_test)
 
+widget_presentation_test = executable('widget_presentation_test',
+  sources: files(
+    'tests/widget_presentation_test.cpp',
+    'src/shell/bar/widget_presentation.cpp',
+    'src/config/widget_config.cpp',
+    'src/config/config_types.cpp',
+    'src/render/core/color.cpp',
+    'src/ui/palette.cpp',
+    'src/theme/builtin_palettes.cpp',
+    'src/theme/fixed_palette.cpp',
+    'src/theme/color.cpp',
+    'src/theme/contrast.cpp',
+    'src/core/input/key_chord.cpp',
+  ),
+  include_directories: _noctalia_inc,
+  dependencies: [
+    xkbcommon_dep,
+    tomlplusplus_dep,
+  ],
+)
+
+test('widget_presentation', widget_presentation_test)
+
 config_path_resolution_test = executable('config_path_resolution_test',
   sources: files(
     'tests/config_path_resolution_test.cpp',
@@ -1608,6 +1634,29 @@ test(
   'stratos_launcher',
   sh_program,
   args: ['tests/stratos_launcher_test.sh', meson.current_source_dir() / 'packaging/stratos/hyprtia'],
+  workdir: meson.current_source_dir(),
+)
+
+test(
+  'stratos_safe_mode',
+  sh_program,
+  args: [
+    'tests/stratos_safe_mode_test.sh',
+    meson.current_source_dir() / 'packaging/stratos/hyprtia',
+    meson.current_source_dir() / 'packaging/stratos/config.toml',
+    meson.current_source_dir() / 'packaging/stratos/safe-mode.toml',
+  ],
+  workdir: meson.current_source_dir(),
+)
+
+test(
+  'stratos_debug_report',
+  sh_program,
+  args: [
+    'tests/stratos_debug_report_test.sh',
+    meson.current_source_dir() / 'packaging/stratos/hyprtia-debug-report',
+    meson.current_source_dir() / 'packaging/stratos/hyprtia-strat',
+  ],
   workdir: meson.current_source_dir(),
 )
 

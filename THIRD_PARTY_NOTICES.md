@@ -74,3 +74,13 @@ Hyprtia can install and enable Confined Floats through Hyprland's `hyprpm`:
 Copyright (c) 2026, Marcin Mennemann.
 
 No Confined Floats source code or binaries are distributed in Hyprtia.
+
+## end-4 recovery design reference
+
+Hyprtia's frozen native recovery profile is inspired by the defensive,
+minimal-fallback approach of end-4/dots-hyprland:
+<https://github.com/end-4/dots-hyprland> (GPL-3.0).
+
+The end-4 QML, Lua, shell code, and assets are not distributed in Hyprtia. The
+recovery profile is an original Noctalia TOML configuration because end-4's
+Quickshell runtime is not binary- or configuration-compatible with Hyprtia.

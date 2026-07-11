@@ -945,6 +945,7 @@
           "fill-description": "Capsule background color role; fixed hex colors are also supported",
           "foreground": "Foreground",
           "foreground-description": "Icon and label color role for widgets in this group",
+          "deep-settings": "Open detailed widget settings",
           "hide": "Hide this group",
           "hide-widget": "Hide this widget",
           "hint": "Part of a capsule group",
@@ -954,6 +955,8 @@
           "orphan": "Unknown group",
           "padding": "Padding",
           "padding-description": "Inner padding between the capsule edge and its widgets, in pixels",
+          "presentation-medium": "Medium mode: full widget interface",
+          "presentation-small": "Small mode: icon only",
           "radius": "Radius",
           "radius-description": "Capsule corner radius in pixels; Auto inherits the bar's capsule radius",
           "selected": "{count} selected",
@@ -2861,6 +2864,7 @@
         "input": "Input",
         "instance": "Per Placement",
         "kilobytes": "kB/s",
+        "medium": "Medium",
         "megabytes": "MB/s",
         "name": "Name",
         "net-rx": "Network RX",
@@ -2878,6 +2882,7 @@
         "screenshot-primary-region": "Region",
         "shared": "Shared",
         "short": "Short",
+        "small": "Small",
         "swap-percent": "Swap Percent",
         "text": "Text",
         "text-only": "Text Only",
@@ -3042,6 +3047,10 @@
         "entry-glyph-size": {
           "description": "Glyph size inside quick-shortcut tiles in pixels",
           "label": "Shortcut Glyph Size"
+        },
+        "enabled": {
+          "description": "Construct and run this widget module",
+          "label": "Enabled"
         },
         "focused-color": {
           "description": "Color role used for the focused workspace; fixed hex colors are also supported",
@@ -3277,6 +3286,10 @@
         "pinned": {
           "description": "Tray item ids that stay visible in the bar when drawer mode is enabled",
           "label": "Pinned Items"
+        },
+        "presentation": {
+          "description": "Small shows the icon-only view; Medium shows the full widget interface",
+          "label": "Widget Size"
         },
         "primary-click": {
           "description": "Action performed when left-clicking the bar button",

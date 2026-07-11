@@ -1,0 +1,81 @@
+# Frozen Hyprtia recovery profile, inspired by end-4's defensive shell layout.
+# This file is copied once and is never updated automatically.
+
+[shell]
+font_family = "Noto Sans"
+offline_mode = true
+telemetry_enabled = false
+polkit_agent = false
+setup_wizard_enabled = false
+clipboard_enabled = false
+
+[bar.safe]
+position = "top"
+thickness = 44
+background_opacity = 0.92
+radius = 10
+margin_ends = 4
+margin_edge = 4
+padding = 6
+widget_spacing = 6
+shadow = false
+auto_hide = false
+reserve_space = true
+capsule = false
+start = ["workspaces"]
+center = ["clock"]
+end = ["network", "volume", "battery", "settings", "session"]
+
+[widget.workspaces]
+enabled = true
+presentation = "small"
+
+[widget.clock]
+enabled = true
+presentation = "medium"
+format = "{:%H:%M}"
+
+[widget.network]
+enabled = true
+presentation = "small"
+show_label = false
+
+[widget.volume]
+enabled = true
+presentation = "small"
+show_label = false
+
+[widget.battery]
+enabled = true
+presentation = "small"
+display_mode = "glyph"
+show_label = false
+
+[widget.settings]
+enabled = true
+presentation = "small"
+
+[widget.session]
+enabled = true
+presentation = "small"
+
+[wallpaper]
+enabled = false
+
+[theme]
+mode = "dark"
+source = "builtin"
+builtin = "Tokyo-Night"
+
+[theme.templates]
+enable_builtin_templates = false
+enable_community_templates = false
+
+[notification]
+enable_daemon = true
+
+[audio]
+enable_sounds = false
+
+[weather]
+enabled = false

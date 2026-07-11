@@ -57,6 +57,8 @@ cmp "$rule_resource" "$XDG_CONFIG_HOME/hypr/hyprtia-confined-floats.conf"
 grep -q 'kb_layout = "fr"' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.lua"
 grep -q 'hl.on("hyprland.start"' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.lua"
 grep -q 'hl.exec_cmd("hyprtia-hyprland-session")' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.lua"
+grep -qF 'hl.bind("SUPER + B", hl.dsp.exec_cmd("hyprtia-debug-report"))' \
+  "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.lua"
 ! grep -q 'exec-once' "$XDG_CONFIG_HOME/hypr/hyprtia-stratos.lua"
 grep -qF 'require("hyprtia-stratos")' "$XDG_CONFIG_HOME/hypr/hyprland.lua"
 test ! -e "$XDG_CONFIG_HOME/hypr/hyprland.conf"

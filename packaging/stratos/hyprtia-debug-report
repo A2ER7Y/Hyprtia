@@ -1,0 +1,125 @@
+#!/bin/sh
+
+set -eu
+
+case "$0" in
+  */*) script_dir=${0%/*} ;;
+  *) script_dir=. ;;
+esac
+binary_dir=$(CDPATH= cd -- "$script_dir" && pwd)
+strat_runner=$binary_dir/hyprtia-strat
+state_root=${HYPRTIA_STATE_HOME:-${XDG_STATE_HOME:-"$HOME/.local/state"}}
+state_dir=${state_root%/}/hyprtia
+report=$state_dir/debug-report.txt
+temporary=$report.tmp.$$
+cache_root=${XDG_CACHE_HOME:-"$HOME/.cache"}
+shell_log=${cache_root%/}/noctalia/noctalia.log
+startup_log=$state_dir/last-startup.log
+safe_mode=0
+if [ -f "$state_dir/safe-mode.active" ]; then
+  safe_mode=1
+fi
+
+mkdir -p "$state_dir"
+trap 'rm -f "$temporary"' EXIT HUP INT TERM
+
+redact_stream() {
+  awk -v home="$HOME" '
+    BEGIN { IGNORECASE = 1 }
+    {
+      line = $0
+      if (line ~ /(api[-_]?key|authorization|cookie|password|passwd|secret|token)[[:space:]]*[=:]/
+          || line ~ /bearer[[:space:]]+[A-Za-z0-9._~+\/-]+/) {
+        print "[REDACTED SECRET LINE]"
+        next
+      }
+      if (home != "") {
+        while ((position = index(line, home)) > 0) {
+          line = substr(line, 1, position - 1) "~" substr(line, position + length(home))
+        }
+      }
+      print line
+    }
+  '
+}
+
+{
+  printf '%s\n' \
+    'Hyprtia redacted debug report' \
+    '=============================' \
+    "Generated: $(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+    "Safe mode: $safe_mode" \
+    "System stratum: ${HYPRTIA_SYSTEM_STRATUM:-kirolinux}" \
+    "Apps stratum: ${HYPRTIA_APPS_STRATUM:-fedora}" \
+    ''
+
+  printf '%s\n' '[uname]'
+  uname -a 2>&1 || true
+  printf '\n%s\n' '[Bedrock status]'
+  if command -v brl >/dev/null 2>&1; then
+    brl status 2>&1 || true
+  else
+    printf '%s\n' 'Bedrock command unavailable'
+  fi
+
+  printf '\n%s\n' '[Hyprland]'
+  if [ -x "$strat_runner" ] && "$strat_runner" --check system Hyprland; then
+    "$strat_runner" system Hyprland --version 2>&1 || true
+  else
+    printf '%s\n' 'Hyprland unavailable in the system stratum'
+  fi
+
+  printf '\n%s\n' '[Hyprtia service]'
+  if command -v journalctl >/dev/null 2>&1; then
+    journalctl --user -u hyprtia.service -n 160 --no-pager 2>&1 || true
+  else
+    printf '%s\n' 'journalctl unavailable'
+  fi
+
+  printf '\n%s\n' '[Last failed startup]'
+  if [ -f "$startup_log" ]; then
+    awk 'NR <= 240 { print }' "$startup_log"
+  else
+    printf '%s\n' 'No failed-startup snapshot'
+  fi
+
+  printf '\n%s\n' '[Current shell log]'
+  if [ -f "$shell_log" ]; then
+    awk 'NR <= 240 { lines[NR % 240] = $0; total = NR } END {
+      first = total > 240 ? total - 239 : 1
+      for (i = first; i <= total; ++i) print lines[i % 240]
+    }' "$shell_log"
+  else
+    printf '%s\n' 'No shell log'
+  fi
+} | redact_stream >"$temporary"
+
+mv "$temporary" "$report"
+trap - EXIT HUP INT TERM
+
+copied=false
+if [ -x "$strat_runner" ] && "$strat_runner" --check apps wl-copy; then
+  if "$strat_runner" apps wl-copy <"$report"; then
+    copied=true
+  fi
+elif command -v wl-copy >/dev/null 2>&1 && wl-copy <"$report"; then
+  copied=true
+fi
+
+if [ "$copied" = true ]; then
+  message="Rapport copié. Collez-le sur Reddit, Discord ou GitHub. Fichier : $report"
+else
+  message="Rapport créé dans $report. Installez wl-clipboard pour le copier automatiquement."
+fi
+"$binary_dir/noctalia" msg notification-show "Rapport de debug Hyprtia" "$message" >/dev/null 2>&1 || true
+
+if [ "${1:-}" = "--open-github" ]; then
+  issue_url=https://github.com/A2ER7Y/Hyprtia/issues/new
+  if [ -x "$strat_runner" ] && "$strat_runner" --check apps xdg-open; then
+    "$strat_runner" apps xdg-open "$issue_url" >/dev/null 2>&1 || true
+  elif command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "$issue_url" >/dev/null 2>&1 || true
+  fi
+fi
+
+printf '%s\n' "$report"

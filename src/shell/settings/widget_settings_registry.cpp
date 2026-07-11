@@ -578,6 +578,17 @@ namespace settings {
   commonWidgetSettingSpecsImpl(std::string_view shellFontFamily, bool populateDynamicFontOptions) {
     const WidgetSettingVisibility capsuleOn{"capsule", {"true"}};
 
+    auto enabled = withGroup(boolSpec("enabled", true), WidgetSettingGroup::Runtime);
+    auto presentation = withGroup(
+        selectSpec(
+            "presentation", "medium",
+            {
+                {"small", "settings.widgets.options.small"},
+                {"medium", "settings.widgets.options.medium"},
+            }
+        ),
+        WidgetSettingGroup::Presentation
+    );
     auto anchor = withGroup(boolSpec("anchor", false, true), WidgetSettingGroup::Presentation);
     auto scale = withGroup(doubleSpec("scale", 1.0, 0.2, 2.5, 0.05), WidgetSettingGroup::Presentation);
     auto widgetColor = withGroup(colorSpec("color", {}, true), WidgetSettingGroup::Presentation);
@@ -628,10 +639,10 @@ namespace settings {
     capsuleOpacity.visibleWhen = capsuleOn;
 
     return {
-        std::move(anchor),         std::move(scale),         std::move(widgetColor),       std::move(widgetIconColor),
-        std::move(fontFamily),     std::move(fontWeight),    std::move(capsuleToggle),     std::move(capsuleRadius),
-        std::move(capsuleFill),    std::move(capsuleBorder), std::move(capsuleForeground), std::move(capsulePadding),
-        std::move(capsuleOpacity),
+        std::move(enabled),           std::move(presentation),    std::move(anchor),         std::move(scale),
+        std::move(widgetColor),       std::move(widgetIconColor), std::move(fontFamily),     std::move(fontWeight),
+        std::move(capsuleToggle),     std::move(capsuleRadius),   std::move(capsuleFill),    std::move(capsuleBorder),
+        std::move(capsuleForeground), std::move(capsulePadding),  std::move(capsuleOpacity),
     };
   }
 
