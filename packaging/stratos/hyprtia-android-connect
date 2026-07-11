@@ -6,7 +6,11 @@
 
 set -eu
 
-binary_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+case "$0" in
+  */*) script_dir=${0%/*} ;;
+  *) script_dir=. ;;
+esac
+binary_dir=$(CDPATH= cd -- "$script_dir" && pwd)
 strat_runner=$binary_dir/hyprtia-strat
 plugin_dir=${HYPRTIA_ANDROID_CONNECT_PLUGIN_DIR:-"${XDG_CONFIG_HOME:-"$HOME/.config"}/noctalia/plugins/androidconnect"}
 

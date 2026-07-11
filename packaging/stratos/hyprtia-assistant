@@ -2,7 +2,11 @@
 
 set -eu
 
-binary_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+case "$0" in
+  */*) script_dir=${0%/*} ;;
+  *) script_dir=. ;;
+esac
+binary_dir=$(CDPATH= cd -- "$script_dir" && pwd)
 strat_runner=$binary_dir/hyprtia-strat
 
 has_app() {
