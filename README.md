@@ -95,6 +95,19 @@ Pinned entries use the same XDG desktop-entry discovery as the launcher and dock
 `~/.local/share/applications`. Install it with `yay -S desktopify-lite`, generate a launcher, then select it in
 **Pinned Applications**.
 
+### Hyprland plugin and French keyboard
+
+In a Hyprland session, the `hyprtia` launcher starts `hyprtia-hyprland-setup` once in the background. The helper:
+
+- installs a managed `hyprtia-stratos.conf` or `hyprtia-stratos.lua` include under `~/.config/hypr/`;
+- sets the XKB layout to French AZERTY with `kb_layout = fr`;
+- adds and enables [confined-floats](https://github.com/mennemann/hyprland-confined-floats) through `hyprpm`;
+- reloads enabled plugins on each session and confines matching floating windows to the visible desktop.
+
+The plugin follows Hyprland's latest stable release and may need rebuilding after a Hyprland update. Run
+`hyprtia-hyprland-setup --force` to repair or re-enable it, or `hyprtia-hyprland-setup --config-only` to install only the
+keyboard and config snippets. Set `HYPRTIA_HYPRLAND_SETUP=0` before launching Hyprtia to disable automatic setup.
+
 The StratOS profile uses the same session transitions as
 [Brain_Shell](https://github.com/Brainitech/Brain_Shell): `hyprshutdown` gracefully closes applications for logout,
 restart, and shutdown, while `hyprlock` provides the fade-in/fade-out lock and unlock screen. The package installs an

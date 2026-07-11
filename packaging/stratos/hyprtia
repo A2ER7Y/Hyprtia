@@ -22,4 +22,14 @@ if [ "$has_user_config" = false ] && [ -f "$defaults" ]; then
   install -Dm644 "$defaults" "$config_dir/stratos.toml"
 fi
 
+hyprland_setup=$binary_dir/hyprtia-hyprland-setup
+if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] &&
+  [ "${HYPRTIA_HYPRLAND_SETUP:-1}" != 0 ] &&
+  [ -x "$hyprland_setup" ]; then
+  state_root=${HYPRTIA_STATE_HOME:-${XDG_STATE_HOME:-"$HOME/.local/state"}}
+  setup_log=${state_root%/}/hyprtia/hyprland-setup.log
+  mkdir -p "$(dirname -- "$setup_log")"
+  "$hyprland_setup" --auto >>"$setup_log" 2>&1 &
+fi
+
 exec "$binary_dir/noctalia" "$@"

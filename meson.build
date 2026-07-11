@@ -982,7 +982,19 @@ install_data(
 )
 
 install_data(
+  'packaging/stratos/hyprtia-hyprland-setup',
+  install_dir: get_option('bindir'),
+  install_mode: 'rwxr-xr-x',
+)
+
+install_data(
   'packaging/stratos/config.toml',
+  install_dir: get_option('datadir') / 'hyprtia',
+)
+
+install_data(
+  'packaging/stratos/hyprtia-hyprland.conf',
+  'packaging/stratos/hyprtia-hyprland.lua',
   install_dir: get_option('datadir') / 'hyprtia',
 )
 
@@ -1622,6 +1634,18 @@ test(
   args: [
     'tests/stratos_assistant_test.sh',
     meson.current_source_dir() / 'packaging/stratos/hyprtia-assistant',
+  ],
+  workdir: meson.current_source_dir(),
+)
+
+test(
+  'stratos_hyprland_setup',
+  sh_program,
+  args: [
+    'tests/stratos_hyprland_setup_test.sh',
+    meson.current_source_dir() / 'packaging/stratos/hyprtia-hyprland-setup',
+    meson.current_source_dir() / 'packaging/stratos/hyprtia-hyprland.conf',
+    meson.current_source_dir() / 'packaging/stratos/hyprtia-hyprland.lua',
   ],
   workdir: meson.current_source_dir(),
 )
