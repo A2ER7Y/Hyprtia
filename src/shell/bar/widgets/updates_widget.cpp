@@ -132,15 +132,12 @@ void UpdatesWidget::syncState() {
 
 std::string UpdatesWidget::tooltipText(const PackageUpdateSnapshot& state) const {
   auto count = [](int value) { return value < 0 ? std::string{"—"} : std::to_string(value); };
-  std::string tooltip = state.checking
-      ? i18n::tr("bar.widgets.updates.checking")
-      : i18n::tr("bar.widgets.updates.available", "count", state.total());
+  std::string tooltip = state.checking ? i18n::tr("bar.widgets.updates.checking")
+                                       : i18n::tr("bar.widgets.updates.available", "count", state.total());
   tooltip += "\n"
-      + i18n::tr(
-                 "bar.widgets.updates.sources", "arch", count(state.arch), "aur", count(state.aur), "flatpak",
+      + i18n::tr("bar.widgets.updates.sources", "arch", count(state.arch), "aur", count(state.aur), "flatpak",
                  count(state.flatpak), "snap", count(state.snap), "appimage", count(state.appimage), "hyprtia",
-                 count(state.hyprtia)
-      );
+                 count(state.hyprtia));
   tooltip += "\n" + i18n::tr("bar.widgets.updates.refresh-action");
   if (!m_options.command.empty()) {
     tooltip += " · " + i18n::tr("bar.widgets.updates.command-action");

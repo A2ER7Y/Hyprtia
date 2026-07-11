@@ -50,8 +50,10 @@ std::vector<QuickShortcutsPanel::Entry> QuickShortcutsPanel::effectiveEntries() 
 
   const auto& shortcuts = m_config->config().shell.shortcuts;
   const WidgetConfig* config = widgetConfig();
-  const std::string terminalGlyph = config != nullptr ? config->getString("terminal_glyph", "terminal-2") : "terminal-2";
-  const std::string commandGlyph = config != nullptr ? config->getString("command_glyph", "player-play") : "player-play";
+  const std::string terminalGlyph =
+      config != nullptr ? config->getString("terminal_glyph", "terminal-2") : "terminal-2";
+  const std::string commandGlyph =
+      config != nullptr ? config->getString("command_glyph", "player-play") : "player-play";
   const std::string appGlyph = config != nullptr ? config->getString("app_glyph", "apps") : "apps";
   entries.reserve(shortcuts.commands.size() + shortcuts.pinned.size());
   for (const auto& value : shortcuts.commands) {
@@ -101,35 +103,29 @@ std::size_t QuickShortcutsPanel::rows() const {
 
 float QuickShortcutsPanel::buttonWidth() const {
   const WidgetConfig* config = widgetConfig();
-  return static_cast<float>(
-      std::clamp<std::int64_t>(
-          config != nullptr ? config->getInt("button_width", static_cast<std::int64_t>(kDefaultButtonWidth))
-                            : static_cast<std::int64_t>(kDefaultButtonWidth),
-          96, 240
-      )
-  );
+  return static_cast<float>(std::clamp<std::int64_t>(
+      config != nullptr ? config->getInt("button_width", static_cast<std::int64_t>(kDefaultButtonWidth))
+                        : static_cast<std::int64_t>(kDefaultButtonWidth),
+      96, 240
+  ));
 }
 
 float QuickShortcutsPanel::buttonHeight() const {
   const WidgetConfig* config = widgetConfig();
-  return static_cast<float>(
-      std::clamp<std::int64_t>(
-          config != nullptr ? config->getInt("button_height", static_cast<std::int64_t>(kDefaultButtonHeight))
-                            : static_cast<std::int64_t>(kDefaultButtonHeight),
-          64, 180
-      )
-  );
+  return static_cast<float>(std::clamp<std::int64_t>(
+      config != nullptr ? config->getInt("button_height", static_cast<std::int64_t>(kDefaultButtonHeight))
+                        : static_cast<std::int64_t>(kDefaultButtonHeight),
+      64, 180
+  ));
 }
 
 float QuickShortcutsPanel::entryGlyphSize() const {
   const WidgetConfig* config = widgetConfig();
-  return static_cast<float>(
-      std::clamp<std::int64_t>(
-          config != nullptr ? config->getInt("entry_glyph_size", static_cast<std::int64_t>(kDefaultGlyphSize))
-                            : static_cast<std::int64_t>(kDefaultGlyphSize),
-          16, 48
-      )
-  );
+  return static_cast<float>(std::clamp<std::int64_t>(
+      config != nullptr ? config->getInt("entry_glyph_size", static_cast<std::int64_t>(kDefaultGlyphSize))
+                        : static_cast<std::int64_t>(kDefaultGlyphSize),
+      16, 48
+  ));
 }
 
 float QuickShortcutsPanel::preferredWidth() const {

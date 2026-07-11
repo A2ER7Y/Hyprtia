@@ -388,7 +388,7 @@ std::unique_ptr<Widget> WidgetFactory::create(
         PowerProfileWidget::Options{
             .showState = showState,
             .stateDisplay = stateDisplay == "profile" ? PowerProfileWidget::StateDisplay::ProfileName
-                                                       : PowerProfileWidget::StateDisplay::PerformanceStatus,
+                                                      : PowerProfileWidget::StateDisplay::PerformanceStatus,
             .hideWhenUnavailable = hideWhenUnavailable,
         }
     );

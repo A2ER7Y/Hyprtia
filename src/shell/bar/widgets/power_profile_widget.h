@@ -22,7 +22,7 @@ public:
     bool hideWhenUnavailable = false;
   };
 
-  explicit PowerProfileWidget(PowerProfilesService* powerProfiles, Options options = {});
+  explicit PowerProfileWidget(PowerProfilesService* powerProfiles, Options options);
 
   void create() override;
 
