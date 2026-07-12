@@ -1,0 +1,67 @@
+#!/bin/sh
+
+set -eu
+
+check_only=false
+if [ "${1:-}" = "--check" ]; then
+  check_only=true
+  shift
+fi
+
+role=${1:-}
+if [ "$#" -gt 0 ]; then
+  shift
+fi
+if [ -z "$role" ] || [ "$#" -eq 0 ]; then
+  printf 'usage: %s [--check] {system|apps} command [args...]\n' "${0##*/}" >&2
+  exit 64
+fi
+
+system_stratum=${HYPRTIA_SYSTEM_STRATUM:-kirolinux}
+apps_stratum=${HYPRTIA_APPS_STRATUM:-fedora}
+case "$role" in
+  system) primary=$system_stratum ;;
+  apps) primary=$apps_stratum ;;
+  *)
+    printf '%s: unknown stratum role: %s\n' "${0##*/}" "$role" >&2
+    exit 64
+    ;;
+esac
+
+is_bedrock=false
+if command -v strat >/dev/null 2>&1 &&
+  { [ -e /bedrock/etc/bedrock-release ] || [ "${HYPRTIA_FORCE_BEDROCK:-0}" = 1 ]; }; then
+  is_bedrock=true
+fi
+
+available_in_stratum() {
+  target=$1
+  command_name=$2
+  strat -r "$target" sh -c 'command -v "$1" >/dev/null 2>&1' sh "$command_name"
+}
+
+if [ "$is_bedrock" = true ]; then
+  selected=
+  if available_in_stratum "$primary" "$1"; then
+    selected=$primary
+  elif [ "$role" = apps ] && [ "$system_stratum" != "$primary" ] &&
+    available_in_stratum "$system_stratum" "$1"; then
+    selected=$system_stratum
+  fi
+
+  if [ -z "$selected" ]; then
+    exit 127
+  fi
+  if [ "$check_only" = true ]; then
+    exit 0
+  fi
+  exec strat "$selected" "$@"
+fi
+
+if ! command -v "$1" >/dev/null 2>&1; then
+  exit 127
+fi
+if [ "$check_only" = true ]; then
+  exit 0
+fi
+exec "$@"

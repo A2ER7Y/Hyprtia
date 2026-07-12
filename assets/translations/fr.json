@@ -102,6 +102,13 @@
         "system": "Système",
         "upload": "Envoi"
       },
+      "updates": {
+        "available": "Mises à jour disponibles : {count}",
+        "checking": "Recherche de mises à jour",
+        "command-action": "Clic droit : ouvrir l’outil de mise à jour",
+        "refresh-action": "Clic gauche : actualiser",
+        "sources": "Arch : {arch} · AUR : {aur} · Fedora : {fedora} · Flatpak : {flatpak} · Snap : {snap} · AppImage : {appimage} · Hyprtia : {hyprtia}"
+      },
       "volume": {
         "device": "Périphérique",
         "mic": "Micro",
@@ -909,6 +916,8 @@
           "fill-description": "Rôle de couleur d’arrière-plan de capsule ; les couleurs hex fixes sont également prises en charge",
           "foreground": "Premier plan",
           "foreground-description": "Rôle de couleur des icônes et des libellés pour les widgets de ce groupe",
+          "deep-settings": "Ouvrir les réglages détaillés du widget",
+          "hide-widget": "Masquer ce widget",
           "hint": "Fait partie d’un groupe de capsules",
           "members": "{count} widgets",
           "opacity": "Opacité",
@@ -916,9 +925,12 @@
           "orphan": "Groupe inconnu",
           "padding": "Marges internes",
           "padding-description": "Marges internes entre le bord de la capsule et ses widgets, en pixels",
+          "presentation-medium": "Mode moyen : interface complète du widget",
+          "presentation-small": "Mode petit : icône uniquement",
           "radius": "Rayon",
           "radius-description": "Rayon des coins de la capsule en pixels ; Auto hérite du rayon de capsule de la barre",
           "selected": "{count} sélectionné(s)",
+          "show-widget": "Afficher ce widget",
           "style": "Style",
           "title": "Groupe de capsules",
           "ungroup": "Dégrouper"
@@ -2731,6 +2743,7 @@
         "input": "Entrée",
         "instance": "Par emplacement",
         "kilobytes": "kB/s",
+        "medium": "Moyen",
         "megabytes": "MB/s",
         "name": "Nom",
         "net-rx": "Réception réseau",
@@ -2744,6 +2757,7 @@
         "screenshot-primary-region": "Zone",
         "shared": "Partagé",
         "short": "Partagé",
+        "small": "Petit",
         "swap-percent": "Swap (%)",
         "text": "Texte",
         "text-only": "Texte seul",
@@ -2752,6 +2766,14 @@
         "workspace-label-inside": "Dans la pastille"
       },
       "settings": {
+        "enabled": {
+          "description": "Construire et exécuter ce module de widget",
+          "label": "Activé"
+        },
+        "presentation": {
+          "description": "Petit affiche uniquement l’icône ; Moyen affiche l’interface complète du widget",
+          "label": "Taille du widget"
+        },
         "active-color": {
           "description": "Couleur utilisée pour les indicateurs de confidentialité actifs ; les couleurs hexadécimales fixes sont également prises en charge",
           "label": "Couleur active"

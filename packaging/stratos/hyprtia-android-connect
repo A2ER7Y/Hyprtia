@@ -6,28 +6,57 @@
 
 set -eu
 
+case "$0" in
+  */*) script_dir=${0%/*} ;;
+  *) script_dir=. ;;
+esac
+binary_dir=$(CDPATH= cd -- "$script_dir" && pwd)
+strat_runner=$binary_dir/hyprtia-strat
 plugin_dir=${HYPRTIA_ANDROID_CONNECT_PLUGIN_DIR:-"${XDG_CONFIG_HOME:-"$HOME/.config"}/noctalia/plugins/androidconnect"}
 
-if command -v qs >/dev/null 2>&1 && [ -f "$plugin_dir/manifest.json" ]; then
-  if qs ipc call plugin:androidconnect toggle >/dev/null 2>&1; then
+has_app() {
+  if [ -x "$strat_runner" ]; then
+    "$strat_runner" --check apps "$1"
+  else
+    command -v "$1" >/dev/null 2>&1
+  fi
+}
+
+run_app() {
+  if [ -x "$strat_runner" ]; then
+    "$strat_runner" apps "$@"
+  else
+    "$@"
+  fi
+}
+
+exec_app() {
+  if [ -x "$strat_runner" ]; then
+    exec "$strat_runner" apps "$@"
+  fi
+  exec "$@"
+}
+
+if has_app qs && [ -f "$plugin_dir/manifest.json" ]; then
+  if run_app qs ipc call plugin:androidconnect toggle >/dev/null 2>&1; then
     exit 0
   fi
 fi
 
-if command -v kdeconnect-app >/dev/null 2>&1; then
-  exec kdeconnect-app
+if has_app kdeconnect-app; then
+  exec_app kdeconnect-app
 fi
 
-if command -v kdeconnect-settings >/dev/null 2>&1; then
-  exec kdeconnect-settings
+if has_app kdeconnect-settings; then
+  exec_app kdeconnect-settings
 fi
 
-if command -v kdeconnect-cli >/dev/null 2>&1; then
-  exec kdeconnect-cli --list-devices
+if has_app kdeconnect-cli; then
+  exec_app kdeconnect-cli --list-devices
 fi
 
-if command -v notify-send >/dev/null 2>&1; then
-  notify-send -a Hyprtia "Android Connect" \
+if has_app notify-send; then
+  run_app notify-send -a Hyprtia "Android Connect" \
     "Install KDE Connect, or install the AndroidConnect plugin in $plugin_dir"
 fi
 printf '%s\n' "Android Connect is unavailable: install KDE Connect or the AndroidConnect plugin." >&2

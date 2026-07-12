@@ -6,6 +6,7 @@ plugin_url=https://github.com/mennemann/hyprland-confined-floats
 plugin_name=confined-floats
 binary_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 prefix=$(dirname -- "$binary_dir")
+strat_runner=$binary_dir/hyprtia-strat
 share_dir=${HYPRTIA_HYPRLAND_SHARE_DIR:-"$prefix/share/hyprtia"}
 config_root=${HYPRTIA_HYPR_CONFIG_HOME:-${XDG_CONFIG_HOME:-"$HOME/.config"}}
 config_dir=${config_root%/}/hypr
@@ -16,6 +17,22 @@ lock_dir=$state_dir/hyprland-setup.lock
 mode=${HYPRTIA_HYPRLAND_CONFIG_MODE:-}
 install_plugin=true
 force_plugin=false
+
+run_system() {
+  if [ -x "$strat_runner" ]; then
+    "$strat_runner" system "$@"
+  else
+    "$@"
+  fi
+}
+
+has_system() {
+  if [ -x "$strat_runner" ]; then
+    "$strat_runner" --check system "$1"
+  else
+    command -v "$1" >/dev/null 2>&1
+  fi
+}
 
 for option in "$@"; do
   case "$option" in
@@ -43,13 +60,13 @@ detect_mode() {
     esac
   fi
 
-  if command -v hyprctl >/dev/null 2>&1 &&
-    hyprctl dispatch 'hl.dsp.no_op()' 2>/dev/null | grep -qx 'ok'; then
+  if [ -f "$config_dir/hyprland.lua" ]; then
     printf 'lua\n'
-  elif [ -f "$config_dir/hyprland.lua" ]; then
-    printf 'lua\n'
-  else
+  elif [ -f "$config_dir/hyprland.conf" ]; then
+    # Preserve an existing legacy configuration until the user migrates it.
     printf 'conf\n'
+  else
+    printf 'lua\n'
   fi
 }
 
@@ -115,7 +132,7 @@ fi
 if [ "$force_plugin" = false ] && [ -f "$plugin_marker" ]; then
   exit 0
 fi
-if ! command -v hyprpm >/dev/null 2>&1; then
+if ! has_system hyprpm; then
   printf 'hyprtia-hyprland-setup: hyprpm is required to install %s\n' "$plugin_name" >&2
   exit 1
 fi
@@ -124,13 +141,13 @@ if ! mkdir "$lock_dir" 2>/dev/null; then
 fi
 trap 'rmdir "$lock_dir" 2>/dev/null || true' EXIT HUP INT TERM
 
-plugin_list=$(hyprpm list 2>/dev/null || true)
+plugin_list=$(run_system hyprpm list 2>/dev/null || true)
 case "$plugin_list" in
   *"$plugin_name"*) ;;
-  *) hyprpm add "$plugin_url" ;;
+  *) run_system hyprpm add "$plugin_url" ;;
 esac
 
-hyprpm enable "$plugin_name"
+run_system hyprpm enable "$plugin_name"
 touch "$plugin_marker"
 
 # A future session also applies the rule through the managed autostart.
@@ -138,12 +155,12 @@ session_loader=$binary_dir/hyprtia-hyprland-session
 if [ -x "$session_loader" ]; then
   "$session_loader" >/dev/null 2>&1 || true
 else
-  hyprpm reload >/dev/null 2>&1 || true
-  if command -v hyprctl >/dev/null 2>&1; then
+  run_system hyprpm reload >/dev/null 2>&1 || true
+  if has_system hyprctl; then
     if [ "$selected_mode" = lua ]; then
-      hyprctl reload >/dev/null 2>&1 || true
+      run_system hyprctl reload >/dev/null 2>&1 || true
     else
-      hyprctl keyword source "$rule_file" >/dev/null 2>&1 || true
+      run_system hyprctl keyword source "$rule_file" >/dev/null 2>&1 || true
     fi
   fi
 fi

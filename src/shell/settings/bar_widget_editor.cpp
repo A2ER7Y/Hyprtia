@@ -2646,12 +2646,54 @@ namespace settings {
         titleLabel->setFlexGrow(1.0f);
         row->addChild(std::move(titleLabel));
       }
-      if (!widgetTypeForReference(ctx.config, name).empty()) {
+      const std::string widgetType = widgetTypeForReference(ctx.config, name);
+      std::string presentation = "medium";
+      if (auto it = ctx.config.widgets.find(name); it != ctx.config.widgets.end()) {
+        presentation = it->second.getString("presentation", "medium");
+      }
+      if (!widgetType.empty()) {
         row->addChild(
             ui::button({
-                .glyph = "settings",
+                .glyph = "square-rounded",
+                .glyphSize = Style::fontSizeCaption * ctx.scale,
+                .variant = presentation == "small" ? ButtonVariant::Default : ButtonVariant::Ghost,
+                .tooltip = i18n::tr("settings.entities.widget.group.presentation-small"),
+                .minWidth = iconSize,
+                .minHeight = iconSize,
+                .padding = iconPad,
+                .radius = Style::scaledRadiusSm(ctx.scale),
+                .onClick = [setOverride = ctx.setOverride, requestRebuild = ctx.requestRebuild, name]() {
+                  setOverride({"widget", name, "presentation"}, std::string("small"));
+                  if (requestRebuild) {
+                    requestRebuild();
+                  }
+                },
+            })
+        );
+        row->addChild(
+            ui::button({
+                .glyph = "layout-dashboard",
+                .glyphSize = Style::fontSizeCaption * ctx.scale,
+                .variant = presentation == "medium" ? ButtonVariant::Default : ButtonVariant::Ghost,
+                .tooltip = i18n::tr("settings.entities.widget.group.presentation-medium"),
+                .minWidth = iconSize,
+                .minHeight = iconSize,
+                .padding = iconPad,
+                .radius = Style::scaledRadiusSm(ctx.scale),
+                .onClick = [setOverride = ctx.setOverride, requestRebuild = ctx.requestRebuild, name]() {
+                  setOverride({"widget", name, "presentation"}, std::string("medium"));
+                  if (requestRebuild) {
+                    requestRebuild();
+                  }
+                },
+            })
+        );
+        row->addChild(
+            ui::button({
+                .glyph = "plus",
                 .glyphSize = Style::fontSizeCaption * ctx.scale,
                 .variant = ButtonVariant::Ghost,
+                .tooltip = i18n::tr("settings.entities.widget.group.deep-settings"),
                 .minWidth = iconSize,
                 .minHeight = iconSize,
                 .padding = iconPad,

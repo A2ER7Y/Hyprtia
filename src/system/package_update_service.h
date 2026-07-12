@@ -15,6 +15,7 @@ struct PackageUpdateSnapshot {
   // -1 means that the corresponding package manager/checker is unavailable.
   int arch = -1;
   int aur = -1;
+  int fedora = -1;
   int flatpak = -1;
   int snap = -1;
   int appimage = -1;
@@ -58,6 +59,7 @@ private:
 
 namespace package_updates {
   [[nodiscard]] int countNonEmptyLines(std::string_view text);
+  [[nodiscard]] int countDnfUpdates(std::string_view text);
   [[nodiscard]] int countSnapUpdates(std::string_view text);
   [[nodiscard]] std::string extractGitHubCommitSha(std::string_view json);
   [[nodiscard]] bool revisionDiffers(std::string_view localRevision, std::string_view remoteRevision);

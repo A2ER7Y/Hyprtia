@@ -5,7 +5,83 @@ set -eu
 binary_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 prefix=$(dirname -- "$binary_dir")
 defaults=${HYPRTIA_STRATOS_CONFIG:-"$prefix/share/hyprtia/config.toml"}
-config_root=${NOCTALIA_CONFIG_HOME:-${XDG_CONFIG_HOME:-"$HOME/.config"}}
+safe_defaults=${HYPRTIA_SAFE_MODE_CONFIG:-"$prefix/share/hyprtia/safe-mode.toml"}
+user_config_root=${NOCTALIA_CONFIG_HOME:-${XDG_CONFIG_HOME:-"$HOME/.config"}}
+state_root=${HYPRTIA_STATE_HOME:-${XDG_STATE_HOME:-"$HOME/.local/state"}}
+state_dir=${state_root%/}/hyprtia
+startup_pending=$state_dir/startup.pending
+safe_mode_marker=$state_dir/safe-mode.active
+last_startup_log=$state_dir/last-startup.log
+guard_startup=true
+force_safe_mode=false
+
+case "${1:-}" in
+  --safe-mode)
+    force_safe_mode=true
+    shift
+    ;;
+  --safe-mode-reset)
+    rm -f "$startup_pending" "$safe_mode_marker"
+    printf 'Hyprtia Safe Mode disabled. The next launch will use the normal configuration.\n'
+    exit 0
+    ;;
+  theme | msg | config | dmenu | plugins | --version | -v | --help | -h)
+    guard_startup=false
+    ;;
+esac
+
+mkdir -p "$state_dir"
+if [ "$force_safe_mode" = true ]; then
+  : >"$safe_mode_marker"
+elif [ "$guard_startup" = true ] && [ -f "$startup_pending" ]; then
+  pending_pid=
+  IFS= read -r pending_pid <"$startup_pending" || true
+  case "$pending_pid" in
+    '' | *[!0-9]*) pending_running=false ;;
+    *)
+      if kill -0 "$pending_pid" 2>/dev/null; then
+        pending_running=true
+      else
+        pending_running=false
+      fi
+      ;;
+  esac
+  if [ "$pending_running" = true ]; then
+    # A concurrent invocation will be rejected by Noctalia's instance lock.
+    # It must not consume or replace the real process's startup marker.
+    guard_startup=false
+  else
+    : >"$safe_mode_marker"
+    cache_root=${XDG_CACHE_HOME:-"$HOME/.cache"}
+    shell_log=${cache_root%/}/noctalia/noctalia.log
+    if [ -f "$shell_log" ]; then
+      cp "$shell_log" "$last_startup_log"
+    else
+      printf 'Hyprtia stopped before its regular log became available.\n' >"$last_startup_log"
+    fi
+  fi
+fi
+
+safe_mode=false
+config_root=$user_config_root
+if [ -f "$safe_mode_marker" ]; then
+  safe_mode=true
+  safe_root=$state_dir/safe-mode
+  config_root=$safe_root/config
+  safe_config_dir=${config_root%/}/noctalia
+  if [ ! -f "$safe_config_dir/safe-mode.toml" ]; then
+    if [ ! -f "$safe_defaults" ]; then
+      printf 'hyprtia: missing Safe Mode resource: %s\n' "$safe_defaults" >&2
+      exit 1
+    fi
+    install -Dm644 "$safe_defaults" "$safe_config_dir/safe-mode.toml"
+  fi
+  export NOCTALIA_CONFIG_HOME=$config_root
+  export NOCTALIA_STATE_HOME=$safe_root/state
+  export NOCTALIA_DATA_HOME=$safe_root/data
+  export HYPRTIA_SAFE_MODE=1
+fi
+
 config_dir=${config_root%/}/noctalia
 has_user_config=false
 
@@ -19,17 +95,39 @@ if [ -d "$config_dir" ]; then
 fi
 
 if [ "$has_user_config" = false ] && [ -f "$defaults" ]; then
-  install -Dm644 "$defaults" "$config_dir/stratos.toml"
+  if [ "$safe_mode" = false ]; then
+    install -Dm644 "$defaults" "$config_dir/stratos.toml"
+  fi
 fi
 
 hyprland_setup=$binary_dir/hyprtia-hyprland-setup
 if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] &&
   [ "${HYPRTIA_HYPRLAND_SETUP:-1}" != 0 ] &&
   [ -x "$hyprland_setup" ]; then
-  state_root=${HYPRTIA_STATE_HOME:-${XDG_STATE_HOME:-"$HOME/.local/state"}}
   setup_log=${state_root%/}/hyprtia/hyprland-setup.log
   mkdir -p "$(dirname -- "$setup_log")"
   "$hyprland_setup" --config-only >>"$setup_log" 2>&1 &
+fi
+
+if [ "$guard_startup" = true ]; then
+  printf '%s\n' "$$" >"$startup_pending"
+  export HYPRTIA_STARTUP_GUARD_FILE=$startup_pending
+fi
+
+if [ "$safe_mode" = true ] && [ "$guard_startup" = true ] && [ "${HYPRTIA_SAFE_MODE_NOTIFY:-1}" != 0 ]; then
+  (
+    attempts=0
+    while [ "$attempts" -lt 30 ]; do
+      if "$binary_dir/noctalia" msg notification-show \
+        "Hyprtia Safe Mode" \
+        "La configuration normale a planté au démarrage. Rapport : $last_startup_log — Super+B pour le copier." \
+        >/dev/null 2>&1; then
+        exit 0
+      fi
+      attempts=$((attempts + 1))
+      sleep 1
+    done
+  ) &
 fi
 
 exec "$binary_dir/noctalia" "$@"

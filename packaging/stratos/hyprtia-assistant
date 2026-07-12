@@ -2,12 +2,38 @@
 
 set -eu
 
-if command -v nyarchassistant >/dev/null 2>&1; then
+case "$0" in
+  */*) script_dir=${0%/*} ;;
+  *) script_dir=. ;;
+esac
+binary_dir=$(CDPATH= cd -- "$script_dir" && pwd)
+strat_runner=$binary_dir/hyprtia-strat
+
+has_app() {
+  if [ -x "$strat_runner" ]; then
+    "$strat_runner" --check apps "$1"
+  else
+    command -v "$1" >/dev/null 2>&1
+  fi
+}
+
+run_app() {
+  if [ -x "$strat_runner" ]; then
+    "$strat_runner" apps "$@"
+  else
+    "$@"
+  fi
+}
+
+if has_app nyarchassistant; then
+  if [ -x "$strat_runner" ]; then
+    exec "$strat_runner" apps nyarchassistant "$@"
+  fi
   exec nyarchassistant "$@"
 fi
 
-if command -v notify-send >/dev/null 2>&1; then
-  notify-send \
+if has_app notify-send; then
+  run_app notify-send \
     "Hyprtia Assistant" \
     "Installez le paquet hyprtia-assistant pour activer l’assistant compact."
 fi

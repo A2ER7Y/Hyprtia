@@ -15,6 +15,7 @@
 #include "shell/bar/bar_corner_shape.h"
 #include "shell/bar/bar_reserved_zone.h"
 #include "shell/bar/widget.h"
+#include "shell/bar/widget_presentation.h"
 #include "shell/bar/widgets/plugin_widget.h"
 #include "shell/panel/panel_manager.h"
 #include "shell/surface/shadow.h"
@@ -1992,6 +1993,11 @@ void Bar::populateWidgets(BarInstance& instance) {
     if (auto it = widgetConfigs.find(name); it != widgetConfigs.end()) {
       wcPtr = &it->second;
     }
+    // Disabled modules must not reach the factory: constructors may retain
+    // service samplers or allocate script runtimes even before create().
+    if (!widget_presentation::shouldConstruct(wcPtr)) {
+      return;
+    }
     const float contentScale = resolveWidgetContentScale(instance.barConfig.scale, wcPtr, "widget." + name + ".scale");
     auto widget = m_widgetFactory->create(
         name, instance.output, contentScale, instance.barConfig.position, instance.barConfig.name,
@@ -2003,9 +2009,6 @@ void Bar::populateWidgets(BarInstance& instance) {
     widget->setConfigName(name);
     if (wcPtr != nullptr) {
       widget->setAnchor(wcPtr->getBool("anchor", false));
-      if (!wcPtr->getBool("enabled", true)) {
-        return;
-      }
     }
     widget->setBarCapsuleSpec(
         groupSpec != nullptr ? *groupSpec : resolveWidgetBarCapsuleSpec(instance.barConfig, wcPtr)

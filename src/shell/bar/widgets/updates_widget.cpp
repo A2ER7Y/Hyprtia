@@ -135,9 +135,9 @@ std::string UpdatesWidget::tooltipText(const PackageUpdateSnapshot& state) const
   std::string tooltip = state.checking ? i18n::tr("bar.widgets.updates.checking")
                                        : i18n::tr("bar.widgets.updates.available", "count", state.total());
   tooltip += "\n"
-      + i18n::tr("bar.widgets.updates.sources", "arch", count(state.arch), "aur", count(state.aur), "flatpak",
-                 count(state.flatpak), "snap", count(state.snap), "appimage", count(state.appimage), "hyprtia",
-                 count(state.hyprtia));
+      + i18n::tr("bar.widgets.updates.sources", "arch", count(state.arch), "aur", count(state.aur), "fedora",
+                 count(state.fedora), "flatpak", count(state.flatpak), "snap", count(state.snap), "appimage",
+                 count(state.appimage), "hyprtia", count(state.hyprtia));
   tooltip += "\n" + i18n::tr("bar.widgets.updates.refresh-action");
   if (!m_options.command.empty()) {
     tooltip += " · " + i18n::tr("bar.widgets.updates.command-action");

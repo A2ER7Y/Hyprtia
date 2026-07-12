@@ -59,6 +59,8 @@ pinned = []
 # Other examples editable in Settings > Launcher:
 # "Install dotfiles :: terminal: sh \"$HOME/dotfiles/install.sh\""
 # "Custom script :: sh \"$HOME/.local/bin/my-script\""
+# "List files with Eza :: terminal: hyprtia-strat apps eza --icons --group-directories-first"
+# "View a file with Bat :: terminal: hyprtia-strat apps bat"
 
 # ActivSpot-inspired top bar implemented with native Hyprtia widgets so every
 # lane, capsule and widget remains editable in Settings > Bar.

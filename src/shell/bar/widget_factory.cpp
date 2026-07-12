@@ -20,6 +20,7 @@
 #include "scripting/plugin_manifest.h"
 #include "scripting/plugin_registry.h"
 #include "shell/bar/widget_custom_image.h"
+#include "shell/bar/widget_presentation.h"
 #include "shell/bar/widgets/idle_inhibitor_widget.h"
 #include "shell/bar/widgets/keyboard_layout_widget.h"
 #include "shell/bar/widgets/launcher_widget.h"
@@ -54,6 +55,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -122,12 +124,15 @@ std::unique_ptr<Widget> WidgetFactory::create(
   // Resolve: if name matches a [widget.<name>] entry, use its type + settings.
   // Otherwise treat the name itself as the widget type with default settings.
   const WidgetConfig* wc = nullptr;
+  std::optional<WidgetConfig> effectiveConfig;
   std::string type = name;
 
   auto it = m_config.widgets.find(name);
   if (it != m_config.widgets.end()) {
-    wc = &it->second;
     type = it->second.type;
+    effectiveConfig = it->second;
+    widget_presentation::apply(*effectiveConfig, type);
+    wc = &*effectiveConfig;
   }
 
   if (type == "active_window") {
