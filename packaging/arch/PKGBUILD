@@ -24,6 +24,7 @@ optdepends=(
   'upower: battery and power device integration'
   'ddcutil: external monitor brightness control'
   'wtype: clipboard auto-paste fallback'
+  'wl-clipboard: copy Safe Mode debug reports with Super+B'
   'networkmanager: network controls'
   'bluez: Bluetooth controls'
   'power-profiles-daemon: power profile controls'
